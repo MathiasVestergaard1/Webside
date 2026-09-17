@@ -1,35 +1,63 @@
-﻿@page "/weather"
+@page "/weather"
 @attribute [StreamRendering]
+@rendermode InteractiveServer
+@using System.Globalization
+@using BlazorApp.Components.API
+@inject Api Api
+@inject IWebHostEnvironment Env
 
 <PageTitle>Weather</PageTitle>
 
-<h1>Weather</h1>
+<h2>Temperatures in Denmark</h2>
 
-<p>This component demonstrates showing data.</p>
+<button class="btn btn-secondary" @onclick="GetTemperaturesAsync" disabled="@isLoading">
+    @(isLoading ? "Loading..." : "Get temperatures")
+</button>
 
-@if (forecasts == null)
+@if (errorMessage is not null)
 {
-    <p><em>Loading...</em></p>
+    <p class="text-danger">@errorMessage</p>
 }
-else
+
+@if (temperatures is not null)
 {
+    <div class="map-container">
+        <svg class="map-image" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="Map of Denmark">
+            @foreach (var path in denmarkPaths)
+            {
+                <path d="@path" class="map-land" />
+            }
+        </svg>
+        @foreach (var station in temperatures)
+        {
+            var (leftPct, topPct) = ProjectToMap(station);
+            <div class="temp-marker"
+                 style="left: @(leftPct.ToString("F2", CultureInfo.InvariantCulture))%; top: @(topPct.ToString("F2", CultureInfo.InvariantCulture))%; background-color: @TemperatureColor(station.TemperatureCelsius);"
+                 title="@($"{station.StationId}: {station.TemperatureCelsius:F1} °C at {station.ObservedFrom:yyyy-MM-dd HH:mm} UTC")">
+                @station.TemperatureCelsius.ToString("F0")°
+            </div>
+        }
+    </div>
+
     <table class="table">
         <thead>
             <tr>
-                <th>Date</th>
-                <th aria-label="Temperature in Celsius">Temp. (C)</th>
-                <th aria-label="Temperature in Fahrenheit">Temp. (F)</th>
-                <th>Summary</th>
+                <th>Station</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+                <th>Temperature (°C)</th>
+                <th>Observed (UTC)</th>
             </tr>
         </thead>
         <tbody>
-            @foreach (var forecast in forecasts)
+            @foreach (var station in temperatures)
             {
                 <tr>
-                    <td>@forecast.Date.ToShortDateString()</td>
-                    <td>@forecast.TemperatureC</td>
-                    <td>@forecast.TemperatureF</td>
-                    <td>@forecast.Summary</td>
+                    <td>@station.StationId</td>
+                    <td>@station.Latitude.ToString("F4")</td>
+                    <td>@station.Longitude.ToString("F4")</td>
+                    <td>@station.TemperatureCelsius.ToString("F1")</td>
+                    <td>@station.ObservedFrom.ToString("yyyy-MM-dd HH:mm")</td>
                 </tr>
             }
         </tbody>
@@ -38,9 +66,15 @@ else
 
 @code {
     private WeatherForecast[]? forecasts;
+    private bool isLoading = false;
+    private List<StationTemperature>? temperatures;
+    private string? errorMessage;
+    private List<string> denmarkPaths = [];
 
     protected override async Task OnInitializedAsync()
     {
+        denmarkPaths = DenmarkBoundary.GetSvgPaths(Path.Combine(Env.WebRootPath, "data", "denmark-boundary.geojson"));
+
         // Simulate asynchronous loading to demonstrate streaming rendering
         await Task.Delay(500);
 
@@ -52,6 +86,44 @@ else
             TemperatureC = Random.Shared.Next(-20, 55),
             Summary = summaries[Random.Shared.Next(summaries.Length)]
         }).ToArray();
+    }
+
+    private static (double LeftPercent, double TopPercent) ProjectToMap(StationTemperature station)
+    {
+        var leftPercent = (station.Longitude - Api.DenmarkMinLongitude)
+            / (Api.DenmarkMaxLongitude - Api.DenmarkMinLongitude) * 100;
+        var topPercent = (Api.DenmarkMaxLatitude - station.Latitude)
+            / (Api.DenmarkMaxLatitude - Api.DenmarkMinLatitude) * 100;
+        return (leftPercent, topPercent);
+    }
+
+    private static string TemperatureColor(double celsius)
+    {
+        // Blue at 0°C, red at 25°C, clamped and interpolated in between.
+        var t = Math.Clamp(celsius / 25.0, 0.0, 1.0);
+        var red = (int)(t * 255);
+        var blue = (int)((1 - t) * 255);
+        return $"rgb({red}, 60, {blue})";
+    }
+
+    private async Task GetTemperaturesAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+        temperatures = null;
+
+        try
+        {
+            temperatures = await Api.GetDenmarkTemperaturesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load temperatures: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     private class WeatherForecast
