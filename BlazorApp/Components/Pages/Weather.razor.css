@@ -1,0 +1,35 @@
+.map-container {
+    position: relative;
+    width: 600px;
+    max-width: 100%;
+    aspect-ratio: 600 / 473;
+    margin-bottom: 1rem;
+}
+
+.map-image {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.map-land {
+    fill: #eef3f7;
+    stroke: #333;
+    stroke-width: 0.15;
+    vector-effect: non-scaling-stroke;
+}
+
+.temp-marker {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    color: white;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
+}
