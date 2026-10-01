@@ -1,8 +1,10 @@
-<<<<<<< HEAD
-﻿@page "/weather"
+@page "/weather"
 @attribute [StreamRendering]
 @rendermode InteractiveServer
-
+@using System.Globalization
+@using BlazorApp.Components.API
+@inject Api Api
+@inject IWebHostEnvironment Env
 
 <PageTitle>Weather</PageTitle>
 
@@ -12,9 +14,9 @@
 
 <div class="d-flex gap-2 mb-3">
     <input type="text"
-        class="form-control"
-        placeholder="Søg efter by..."
-        @bind="searchText" />
+           class="form-control"
+           placeholder="Søg efter by..."
+           @bind="searchText" />
 
     <button class="btn btn-primary" @onclick="Search">
         Søg
@@ -28,84 +30,11 @@
     </p>
 }
 
-@if (forecasts == null)
-{
-    <p><em>Loading...</em></p>
-}
-else
-{
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th aria-label="Temperature in Celsius">Temp. (C)</th>
-                <th aria-label="Temperature in Fahrenheit">Temp. (F)</th>
-                <th>Summary</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var forecast in forecasts)
-            {
-                <tr>
-                    <td>@forecast.Date.ToShortDateString()</td>
-                    <td>@forecast.TemperatureC</td>
-                    <td>@forecast.TemperatureF</td>
-                    <td>@forecast.Summary</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
-
-@code {
-
-    private string searchText = "";
-
-    private string searchedPlace = "";
-    private WeatherForecast[]? forecasts;
-
-    private void Search()
-    {
-        searchedPlace = searchText;
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        // Simulate asynchronous loading to demonstrate streaming rendering
-        await Task.Delay(500);
-
-        var startDate = DateOnly.FromDateTime(DateTime.Now);
-        var summaries = new[] { "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching" };
-        forecasts = Enumerable.Range(1, 5).Select(index => new WeatherForecast
-        {
-            Date = startDate.AddDays(index),
-            TemperatureC = Random.Shared.Next(-20, 55),
-            Summary = summaries[Random.Shared.Next(summaries.Length)]
-        }).ToArray();
-    }
-
-    private class WeatherForecast
-    {
-        public DateOnly Date { get; set; }
-        public int TemperatureC { get; set; }
-        public string? Summary { get; set; }
-        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-    }
-}
-=======
-@page "/weather"
-@attribute [StreamRendering]
-@rendermode InteractiveServer
-@using System.Globalization
-@using BlazorApp.Components.API
-@inject Api Api
-@inject IWebHostEnvironment Env
-
-<PageTitle>Weather</PageTitle>
-
 <h2>Temperatures in Denmark</h2>
 
-<button class="btn btn-secondary" @onclick="GetTemperaturesAsync" disabled="@isLoading">
+<button class="btn btn-secondary"
+        @onclick="GetTemperaturesAsync"
+        disabled="@isLoading">
     @(isLoading ? "Loading..." : "Get temperatures")
 </button>
 
@@ -117,15 +46,22 @@ else
 @if (temperatures is not null)
 {
     <div class="map-container">
-        <svg class="map-image" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="Map of Denmark">
+        <svg class="map-image"
+             viewBox="0 0 100 100"
+             preserveAspectRatio="none"
+             role="img"
+             aria-label="Map of Denmark">
+
             @foreach (var path in denmarkPaths)
             {
                 <path d="@path" class="map-land" />
             }
         </svg>
+
         @foreach (var station in temperatures)
         {
             var (leftPct, topPct) = ProjectToMap(station);
+
             <div class="temp-marker"
                  style="left: @(leftPct.ToString("F2", CultureInfo.InvariantCulture))%; top: @(topPct.ToString("F2", CultureInfo.InvariantCulture))%; background-color: @TemperatureColor(station.TemperatureCelsius);"
                  title="@($"{station.StationId}: {station.TemperatureCelsius:F1} °C at {station.ObservedFrom:yyyy-MM-dd HH:mm} UTC")">
@@ -144,6 +80,7 @@ else
                 <th>Observed (UTC)</th>
             </tr>
         </thead>
+
         <tbody>
             @foreach (var station in temperatures)
             {
@@ -160,44 +97,54 @@ else
 }
 
 @code {
-    private WeatherForecast[]? forecasts;
+    private string searchText = "";
+    private string searchedPlace = "";
+
     private bool isLoading = false;
     private List<StationTemperature>? temperatures;
     private string? errorMessage;
     private List<string> denmarkPaths = [];
 
-    protected override async Task OnInitializedAsync()
+    private void Search()
     {
-        denmarkPaths = DenmarkBoundary.GetSvgPaths(Path.Combine(Env.WebRootPath, "data", "denmark-boundary.geojson"));
-
-        // Simulate asynchronous loading to demonstrate streaming rendering
-        await Task.Delay(500);
-
-        var startDate = DateOnly.FromDateTime(DateTime.Now);
-        var summaries = new[] { "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching" };
-        forecasts = Enumerable.Range(1, 5).Select(index => new WeatherForecast
-        {
-            Date = startDate.AddDays(index),
-            TemperatureC = Random.Shared.Next(-20, 55),
-            Summary = summaries[Random.Shared.Next(summaries.Length)]
-        }).ToArray();
+        searchedPlace = searchText;
     }
 
-    private static (double LeftPercent, double TopPercent) ProjectToMap(StationTemperature station)
+    protected override Task OnInitializedAsync()
     {
-        var leftPercent = (station.Longitude - Api.DenmarkMinLongitude)
-            / (Api.DenmarkMaxLongitude - Api.DenmarkMinLongitude) * 100;
-        var topPercent = (Api.DenmarkMaxLatitude - station.Latitude)
-            / (Api.DenmarkMaxLatitude - Api.DenmarkMinLatitude) * 100;
+        denmarkPaths = DenmarkBoundary.GetSvgPaths(
+            Path.Combine(
+                Env.WebRootPath,
+                "data",
+                "denmark-boundary.geojson"
+            )
+        );
+
+        return Task.CompletedTask;
+    }
+
+    private static (double LeftPercent, double TopPercent)
+        ProjectToMap(StationTemperature station)
+    {
+        var leftPercent =
+            (station.Longitude - Api.DenmarkMinLongitude)
+            / (Api.DenmarkMaxLongitude - Api.DenmarkMinLongitude)
+            * 100;
+
+        var topPercent =
+            (Api.DenmarkMaxLatitude - station.Latitude)
+            / (Api.DenmarkMaxLatitude - Api.DenmarkMinLatitude)
+            * 100;
+
         return (leftPercent, topPercent);
     }
 
     private static string TemperatureColor(double celsius)
     {
-        // Blue at 0°C, red at 25°C, clamped and interpolated in between.
         var t = Math.Clamp(celsius / 25.0, 0.0, 1.0);
         var red = (int)(t * 255);
         var blue = (int)((1 - t) * 255);
+
         return $"rgb({red}, 60, {blue})";
     }
 
@@ -220,13 +167,4 @@ else
             isLoading = false;
         }
     }
-
-    private class WeatherForecast
-    {
-        public DateOnly Date { get; set; }
-        public int TemperatureC { get; set; }
-        public string? Summary { get; set; }
-        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-    }
 }
->>>>>>> origin/MapOfDenmark

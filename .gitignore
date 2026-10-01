@@ -1,7 +1,6 @@
-<<<<<<< HEAD
 **/bin/
 **/obj/
-=======
+
 # Specific to the EFCore-Blazor sample app
 *.db
 *.db-shm
@@ -205,4 +204,3 @@ __pycache__/
 
 # Windows thumbnail cache files
 Thumbs.db
->>>>>>> origin/MadsRas
