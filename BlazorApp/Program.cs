@@ -1,10 +1,16 @@
 using BlazorApp.Components;
+using BlazorApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+    
+
+//User Authentication service
+builder.Services.AddScoped<AuthService>();
 
 var app = builder.Build();
 

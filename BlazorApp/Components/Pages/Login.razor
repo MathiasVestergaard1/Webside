@@ -1,7 +1,49 @@
 @page "/login"
 
+@using BlazorApp.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+
+
 <PageTitle>Login</PageTitle>
 
-<h1>Login</h1>
+<div class="mb-3">
+    <label class="form-label">Email</label>
+    <input class="form-control"
+           @bind="email" />
+</div>
 
-<p>Login page coming soon.</p>
+<div class="mb-3">
+    <label class="form-label">Password</label>
+    <input class="form-control"
+           type="password"
+           @bind="password" />
+</div>
+
+<button class="btn btn-primary" @onclick="HandleLogin">
+    Login
+</button>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <p class="text-danger mt-3">@errorMessage</p>
+}
+
+@code {
+    private string email = "";
+    private string password = "";
+    private string errorMessage = "";
+
+    private void HandleLogin()
+    {
+        if (AuthService.Login(email, password))
+        {
+            Navigation.NavigateTo("/");
+        }
+        else
+        {
+            errorMessage = "Invalid email or password.";
+        }
+    }
+}
