@@ -1,5 +1,9 @@
 using BlazorApp.Components;
+<<<<<<< HEAD
 using BlazorApp.Services;
+=======
+using BlazorApp.Components.API;
+>>>>>>> origin/MapOfDenmark
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,10 +11,19 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+<<<<<<< HEAD
     
 
 //User Authentication service
 builder.Services.AddScoped<AuthService>();
+=======
+builder.Services.AddHttpClient<Api>(client =>
+{
+    client.BaseAddress = new Uri("https://opendataapi.dmi.dk");
+    client.DefaultRequestHeaders.Accept.Clear();
+    client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+});
+>>>>>>> origin/MapOfDenmark
 
 var app = builder.Build();
 
