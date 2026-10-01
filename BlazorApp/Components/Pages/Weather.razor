@@ -1,11 +1,31 @@
 ﻿@page "/weather"
 @attribute [StreamRendering]
+@rendermode InteractiveServer
+
 
 <PageTitle>Weather</PageTitle>
 
-<h1>Weather</h1>
+<h1>Vejret</h1>
 
-<p>This component demonstrates showing data.</p>
+<p>Søg efter et sted.</p>
+
+<div class="d-flex gap-2 mb-3">
+    <input type="text"
+        class="form-control"
+        placeholder="Søg efter by..."
+        @bind="searchText" />
+
+    <button class="btn btn-primary" @onclick="Search">
+        Søg
+    </button>
+</div>
+
+@if (!string.IsNullOrEmpty(searchedPlace))
+{
+    <p>
+        Søger efter: <strong>@searchedPlace</strong>
+    </p>
+}
 
 @if (forecasts == null)
 {
@@ -37,7 +57,16 @@ else
 }
 
 @code {
+
+    private string searchText = "";
+
+    private string searchedPlace = "";
     private WeatherForecast[]? forecasts;
+
+    private void Search()
+    {
+        searchedPlace = searchText;
+    }
 
     protected override async Task OnInitializedAsync()
     {
