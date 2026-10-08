@@ -1,8 +1,5 @@
 using System.Text.Json.Serialization;
 
-// NOTE: Put this in a namespace that matches your project if you prefer
-// (and add a matching @using in _Imports.razor).
-
 // ---------- Geocoding API ----------
 
 public class GeocodingResponse
