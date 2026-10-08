@@ -1,7 +1,7 @@
 ﻿@page "/weather"
-@attribute [StreamRendering]
 @rendermode InteractiveServer
-
+@using System.Globalization
+@inject IHttpClientFactory HttpClientFactory
 
 <PageTitle>Weather</PageTitle>
 
@@ -11,45 +11,55 @@
 
 <div class="d-flex gap-2 mb-3">
     <input type="text"
-        class="form-control"
-        placeholder="Søg efter by..."
-        @bind="searchText" />
+           class="form-control"
+           placeholder="Søg efter by..."
+           @bind="searchText"
+           @bind:event="oninput"
+           @onkeydown="HandleKeyDown" />
 
-    <button class="btn btn-primary" @onclick="Search">
+    <button class="btn btn-primary" @onclick="SearchAsync" disabled="@isLoading">
         Søg
     </button>
 </div>
 
-@if (!string.IsNullOrEmpty(searchedPlace))
+@if (isLoading)
 {
-    <p>
-        Søger efter: <strong>@searchedPlace</strong>
-    </p>
+    <p><em>Henter vejrdata...</em></p>
 }
+else if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-warning">@errorMessage</div>
+}
+else if (location != null && forecasts != null)
+{
+    <h2>
+        @location.Name
+        <small class="text-muted">
+            @string.Join(", ", new[] { location.Region, location.Country }.Where(s => !string.IsNullOrEmpty(s)))
+        </small>
+    </h2>
 
-@if (forecasts == null)
-{
-    <p><em>Loading...</em></p>
-}
-else
-{
     <table class="table">
         <thead>
             <tr>
-                <th>Date</th>
-                <th aria-label="Temperature in Celsius">Temp. (C)</th>
-                <th aria-label="Temperature in Fahrenheit">Temp. (F)</th>
-                <th>Summary</th>
+                <th>Dato</th>
+                <th>Gennemsnit</th>
+                <th>Max</th>
+                <th>Min</th>
+                <th>Vind (m/s)</th>
+                <th>Vejrforhold</th>
             </tr>
         </thead>
         <tbody>
-            @foreach (var forecast in forecasts)
+            @foreach (var day in forecasts)
             {
                 <tr>
-                    <td>@forecast.Date.ToShortDateString()</td>
-                    <td>@forecast.TemperatureC</td>
-                    <td>@forecast.TemperatureF</td>
-                    <td>@forecast.Summary</td>
+                    <td>@day.Date.ToString("dddd d. MMM", daCulture)</td>
+                    <td>@day.TempMean.ToString("F1", daCulture) °C</td>
+                    <td>@day.TempMax.ToString("F1", daCulture) °C</td>
+                    <td>@day.TempMin.ToString("F1", daCulture) °C</td>
+                    <td>@day.WindSpeed.ToString("F1", daCulture)</td>
+                    <td>@day.Condition</td>
                 </tr>
             }
         </tbody>
@@ -57,37 +67,96 @@ else
 }
 
 @code {
+    private static readonly CultureInfo daCulture = new("da-DK");
 
     private string searchText = "";
+    private bool isLoading;
+    private string? errorMessage;
 
-    private string searchedPlace = "";
-    private WeatherForecast[]? forecasts;
+    private GeocodingResult? location;
+    private List<DayForecast>? forecasts;
 
-    private void Search()
+    private async Task HandleKeyDown(KeyboardEventArgs e)
     {
-        searchedPlace = searchText;
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        // Simulate asynchronous loading to demonstrate streaming rendering
-        await Task.Delay(500);
-
-        var startDate = DateOnly.FromDateTime(DateTime.Now);
-        var summaries = new[] { "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching" };
-        forecasts = Enumerable.Range(1, 5).Select(index => new WeatherForecast
+        if (e.Key == "Enter")
         {
-            Date = startDate.AddDays(index),
-            TemperatureC = Random.Shared.Next(-20, 55),
-            Summary = summaries[Random.Shared.Next(summaries.Length)]
-        }).ToArray();
+            await SearchAsync();
+        }
     }
 
-    private class WeatherForecast
+    private async Task SearchAsync()
     {
-        public DateOnly Date { get; set; }
-        public int TemperatureC { get; set; }
-        public string? Summary { get; set; }
-        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+        var query = searchText.Trim();
+        if (string.IsNullOrEmpty(query) || isLoading)
+        {
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+        location = null;
+        forecasts = null;
+
+        try
+        {
+            var client = HttpClientFactory.CreateClient();
+
+            // 1. Find the city
+            var geoUrl = "https://geocoding-api.open-meteo.com/v1/search" +
+                         $"?name={Uri.EscapeDataString(query)}&count=1&language=da";
+
+            var geo = await client.GetFromJsonAsync<GeocodingResponse>(geoUrl);
+            var place = geo?.Results?.FirstOrDefault();
+
+            if (place == null)
+            {
+                errorMessage = $"Kunne ikke finde et sted der hedder \"{query}\".";
+                return;
+            }
+
+            // 2. Get the 5-day forecast
+            var lat = place.Latitude.ToString(CultureInfo.InvariantCulture);
+            var lon = place.Longitude.ToString(CultureInfo.InvariantCulture);
+
+            var forecastUrl = "https://api.open-meteo.com/v1/forecast" +
+                              $"?latitude={lat}&longitude={lon}" +
+                              "&daily=weather_code,temperature_2m_max,temperature_2m_min,temperature_2m_mean,wind_speed_10m_max" +
+                              "&wind_speed_unit=ms&timezone=auto&forecast_days=5";
+
+            var forecast = await client.GetFromJsonAsync<ForecastResponse>(forecastUrl);
+            var daily = forecast?.Daily;
+
+            if (daily == null || daily.Time.Count == 0)
+            {
+                errorMessage = "Vejrdata kunne ikke hentes.";
+                return;
+            }
+
+            forecasts = Enumerable.Range(0, daily.Time.Count)
+                .Select(i => new DayForecast
+                {
+                    Date = DateOnly.Parse(daily.Time[i], CultureInfo.InvariantCulture),
+                    TempMean = daily.TemperatureMean[i],
+                    TempMax = daily.TemperatureMax[i],
+                    TempMin = daily.TemperatureMin[i],
+                    WindSpeed = daily.WindSpeedMax[i],
+                    WeatherCode = daily.WeatherCode[i]
+                })
+                .ToList();
+
+            location = place;
+        }
+        catch (HttpRequestException)
+        {
+            errorMessage = "Der var et problem med at kontakte vejrtjenesten. Prøv igen senere.";
+        }
+        catch (Exception)
+        {
+            errorMessage = "Der opstod en uventet fejl.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 }
