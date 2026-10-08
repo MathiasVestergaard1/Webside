@@ -1,43 +1,76 @@
-﻿@page "/weather"
+@page "/weather"
 @attribute [StreamRendering]
+@rendermode InteractiveServer
+@using System.Globalization
+@using BlazorApp.Components.API
+@inject Api Api
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
 <PageTitle>Weather</PageTitle>
 
-<h1>Weather</h1>
+<h2>Temperatures in Denmark</h2>
 
-<p>This component demonstrates showing data.</p>
+<div class="time-controls">
+    <button class="btn btn-outline-secondary" @onclick="() => ChangeHourAsync(-1)" disabled="@isLoading">&lsaquo; 1 hour</button>
+    <input class="form-control" type="datetime-local" step="3600" aria-label="Time (Danish time)"
+           max="@CurrentDanishHour().ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture)"
+           @bind="selectedTime" @bind:after="LoadTemperaturesAsync" />
+    <button class="btn btn-outline-secondary" @onclick="() => ChangeHourAsync(1)" disabled="@(isLoading || selectedTime >= CurrentDanishHour())">1 hour &rsaquo;</button>
+    <button class="btn btn-secondary" @onclick="ShowLatestAsync" disabled="@isLoading">Latest</button>
+    @if (isLoading)
+    {
+        <span class="text-muted">Loading...</span>
+    }
+</div>
 
-@if (forecasts == null)
+@if (errorMessage is not null)
 {
-    <p><em>Loading...</em></p>
+    <p class="text-danger">@errorMessage</p>
 }
-else
+else if (temperatures is { Count: 0 })
 {
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th aria-label="Temperature in Celsius">Temp. (C)</th>
-                <th aria-label="Temperature in Fahrenheit">Temp. (F)</th>
-                <th>Summary</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var forecast in forecasts)
-            {
-                <tr>
-                    <td>@forecast.Date.ToShortDateString()</td>
-                    <td>@forecast.TemperatureC</td>
-                    <td>@forecast.TemperatureF</td>
-                    <td>@forecast.Summary</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <p class="text-muted">No measurements found for this time.</p>
 }
+else if (temperatures is not null)
+{
+    var mainHour = temperatures.GroupBy(t => t.ObservedFrom).MaxBy(g => g.Count())!.Key;
+    var otherHours = temperatures.Count(t => t.ObservedFrom != mainHour);
+    var start = ToDanishTime(mainHour);
+    <p class="measured-at">
+        Measured between <strong>@FormatTime(start)</strong> and <strong>@FormatTime(start.AddHours(1))</strong>
+        on @start.ToString("dddd d MMMM yyyy", CultureInfo.InvariantCulture) (Danish time)
+        @if (otherHours > 0)
+        {
+            <span class="text-muted"> &middot; @otherHours of @temperatures.Count stations are from an earlier hour</span>
+        }
+    </p>
+}
+
+<div class="form-check my-2">
+    <input class="form-check-input" type="checkbox" id="showStationNames"
+           @bind="showStationNames" @bind:after="UpdateShowNamesAsync" />
+    <label class="form-check-label" for="showStationNames">Show station names</label>
+</div>
+
+<div class="map-container" @ref="mapElement"></div>
+
+<p class="map-legend">
+    <span class="legend-station"></span> Weather station (°C, hover for name)
+</p>
 
 @code {
     private WeatherForecast[]? forecasts;
+    private bool isLoading = false;
+    private List<StationTemperature>? temperatures;
+    private string? errorMessage;
+    private bool showStationNames;
+    private ElementReference mapElement;
+    private IJSObjectReference? mapModule;
+    private DateTime selectedTime = CurrentDanishHour();
+    private int loadVersion;
+
+    private static readonly TimeZoneInfo DanishTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Copenhagen");
 
     protected override async Task OnInitializedAsync()
     {
@@ -52,6 +85,141 @@ else
             TemperatureC = Random.Shared.Next(-20, 55),
             Summary = summaries[Random.Shared.Next(summaries.Length)]
         }).ToArray();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            mapModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/weatherMap.js");
+            await mapModule.InvokeVoidAsync("init", mapElement);
+            await LoadTemperaturesAsync();
+            StateHasChanged();
+        }
+    }
+
+    private static string TemperatureColor(double celsius)
+    {
+        // Blue at 0°C, red at 25°C, clamped and interpolated in between.
+        var t = Math.Clamp(celsius / 25.0, 0.0, 1.0);
+        var red = (int)(t * 255);
+        var blue = (int)((1 - t) * 255);
+        return $"rgb({red}, 60, {blue})";
+    }
+
+    private static DateTime CurrentDanishHour()
+    {
+        var now = TimeZoneInfo.ConvertTime(DateTime.UtcNow, DanishTimeZone);
+        return new DateTime(now.Year, now.Month, now.Day, now.Hour, 0, 0);
+    }
+
+    private static DateTime ToDanishTime(DateTimeOffset value) =>
+        TimeZoneInfo.ConvertTime(value, DanishTimeZone).DateTime;
+
+    // Rounds to whole degrees without producing "-0" for values like -0.3.
+    private static int RoundTemperature(double celsius) => (int)Math.Round(celsius);
+
+    private static string FormatTime(DateTime value) =>
+        value.ToString("HH:mm", CultureInfo.InvariantCulture);
+
+    private async Task ChangeHourAsync(int hours)
+    {
+        selectedTime = selectedTime.AddHours(hours);
+        await LoadTemperaturesAsync();
+    }
+
+    private async Task ShowLatestAsync()
+    {
+        selectedTime = CurrentDanishHour();
+        await LoadTemperaturesAsync();
+    }
+
+    private async Task LoadTemperaturesAsync()
+    {
+        // Snap to whole hours (DMI values are hourly) and never ask for the future.
+        selectedTime = new DateTime(selectedTime.Year, selectedTime.Month, selectedTime.Day, selectedTime.Hour, 0, 0);
+        if (selectedTime > CurrentDanishHour())
+        {
+            selectedTime = CurrentDanishHour();
+        }
+
+        // Skips the hour that doesn't exist when clocks go forward in spring.
+        var local = DanishTimeZone.IsInvalidTime(selectedTime) ? selectedTime.AddHours(1) : selectedTime;
+        var at = new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(local, DanishTimeZone));
+
+        // If the user clicks quickly, only the newest request is allowed to update the page.
+        var version = ++loadVersion;
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var result = await Api.GetDenmarkTemperaturesAsync(at);
+            if (version != loadVersion)
+            {
+                return;
+            }
+
+            temperatures = result;
+        }
+        catch (Exception ex)
+        {
+            if (version != loadVersion)
+            {
+                return;
+            }
+
+            temperatures = null;
+            errorMessage = $"Failed to load temperatures: {ex.Message}";
+        }
+
+        isLoading = false;
+        await UpdateMapStationsAsync();
+    }
+
+    private async Task UpdateMapStationsAsync()
+    {
+        if (mapModule is null)
+        {
+            return;
+        }
+
+        var stations = (temperatures ?? []).Select(s => new
+        {
+            s.Name,
+            s.Latitude,
+            s.Longitude,
+            Label = $"{RoundTemperature(s.TemperatureCelsius)}°",
+            Details = $"{s.TemperatureCelsius:F1} °C, {FormatTime(ToDanishTime(s.ObservedFrom))}–{FormatTime(ToDanishTime(s.ObservedFrom).AddHours(1))}",
+            Color = TemperatureColor(s.TemperatureCelsius),
+        });
+        await mapModule.InvokeVoidAsync("setStations", stations);
+    }
+
+    private async Task UpdateShowNamesAsync()
+    {
+        if (mapModule is not null)
+        {
+            await mapModule.InvokeVoidAsync("setShowNames", showStationNames);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (mapModule is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await mapModule.InvokeVoidAsync("dispose");
+            await mapModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is already gone (e.g. the tab was closed), so there is nothing to clean up.
+        }
     }
 
     private class WeatherForecast
