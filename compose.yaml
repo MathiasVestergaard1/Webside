@@ -1,0 +1,35 @@
+# Kun til lokal udvikling. Passwords her er offentlige testværdier.
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: local-root-only
+      MYSQL_DATABASE: webapp
+      MYSQL_USER: webapp
+      MYSQL_PASSWORD: "1234"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./BlazorApp/Accounts/setup.sql:/docker-entrypoint-initdb.d/01-setup.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_PASSWORD mysql -h 127.0.0.1 -u$$MYSQL_USER -D webapp -e 'SELECT id FROM users LIMIT 1' >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  app:
+    build:
+      context: ./BlazorApp
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ConnectionStrings__UsersDatabase: "Server=db;Port=3306;Database=webapp;User ID=webapp;Password=1234;"
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
