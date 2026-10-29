@@ -1,3 +1,4 @@
+
 using BlazorApp.Components;
 using BlazorApp.Services;
 using BlazorApp.Components.API;
@@ -8,8 +9,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// User Authentication service
+// User authentication service
 builder.Services.AddScoped<AuthService>();
+
+// HTTP client factory for weather search
+builder.Services.AddHttpClient();
 
 // DMI Weather API service
 builder.Services.AddHttpClient<Api>(client =>
@@ -30,12 +34,16 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
+app.UseStatusCodePagesWithReExecute(
+    "/not-found",
+    createScopeForStatusCodePages: true
+);
 
+app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
