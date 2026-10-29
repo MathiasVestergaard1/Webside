@@ -55,7 +55,7 @@ public class DailyData
     public List<double> WindSpeedMax { get; set; } = new();
 }
 
-// ---------- View model used by the page ----------
+// ---------- View model brugt af siden ----------
 
 public class DayForecast
 {
@@ -71,28 +71,39 @@ public class DayForecast
 
 public static class WeatherCodes
 {
-    // WMO weather interpretation codes -> Danish text
+    //Fra vejrkoder til dansk (Nu med emojis)
     public static string ToDanish(int code) => code switch
     {
-        0 => "Klar himmel",
-        1 => "Overvejende klart",
-        2 => "Delvist skyet",
-        3 => "Overskyet",
-        45 or 48 => "Tåge",
-        51 or 53 or 55 => "Støvregn",
-        56 or 57 => "Isslag (støvregn)",
-        61 => "Let regn",
-        63 => "Regn",
-        65 => "Kraftig regn",
-        66 or 67 => "Isslag (regn)",
-        71 => "Let snefald",
-        73 => "Snefald",
-        75 => "Kraftigt snefald",
-        77 => "Snekorn",
-        80 or 81 or 82 => "Regnbyger",
-        85 or 86 => "Snebyger",
-        95 => "Tordenvejr",
-        96 or 99 => "Tordenvejr med hagl",
-        _ => "Ukendt"
+        0 => "Klar himmel ☀️",
+        1 => "Overvejende klart 🌤️",
+        2 => "Delvist skyet ⛅",
+        3 => "Overskyet ☁️",
+        45 or 48 => "Tåge 🌫️",
+        51 or 53 or 55 => "Støvregn 🌦️",
+        56 or 57 => "Isslag (støvregn) 🧊",
+        61 => "Let regn 🌦️",
+        63 => "Regn 🌧️",
+        65 => "Kraftig regn 🌧️",
+        66 or 67 => "Isslag (regn) 🧊",
+        71 => "Let snefald 🌨️",
+        73 => "Snefald ❄️",
+        75 => "Kraftigt snefald ❄️",
+        77 => "Snekorn ❄️",
+        80 or 81 or 82 => "Regnbyger 🌦️",
+        85 or 86 => "Snebyger 🌨️",
+        95 => "Tordenvejr ⛈️",
+        96 or 99 => "Tordenvejr med hagl ⛈️",
+        _ => "Ukendt ❓"
     };
+}
+
+// Class til postnumrer
+public class PostalCodeEntry
+{
+    public string PostalCode { get; set; } = "";
+    public string Name { get; set; } = "";
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+    public string? Region { get; set; }
+    public string? Country { get; set; }
 }

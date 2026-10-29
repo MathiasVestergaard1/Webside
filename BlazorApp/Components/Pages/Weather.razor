@@ -1,7 +1,9 @@
 ﻿@page "/weather"
 @rendermode InteractiveServer
 @using System.Globalization
+@using System.Text.Json
 @inject IHttpClientFactory HttpClientFactory
+@inject IWebHostEnvironment Environment
 
 <PageTitle>Weather</PageTitle>
 
@@ -12,7 +14,7 @@
 <div class="d-flex gap-2 mb-3">
     <input type="text"
            class="form-control"
-           placeholder="Søg efter by..."
+           placeholder="Søg efter by eller postnummer..."
            @bind="searchText"
            @bind:event="oninput"
            @onkeydown="HandleKeyDown" />
@@ -83,6 +85,38 @@ else if (location != null && forecasts != null)
             await SearchAsync();
         }
     }
+    
+    private List<PostalCodeEntry> postalCodes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var filePath = Path.Combine(
+            Environment.WebRootPath,
+            "data",
+            "postnumre.json");
+
+        try
+        {
+            if (!File.Exists(filePath))
+            {
+                errorMessage = $"Filen blev ikke fundet: {filePath}";
+                return;
+            }
+
+            var json = await File.ReadAllTextAsync(filePath);
+
+            postalCodes =
+                JsonSerializer.Deserialize<List<PostalCodeEntry>>(json, new JsonSerializerOptions {PropertyNameCaseInsensitive = true})
+                ?? new List<PostalCodeEntry>();
+
+            Console.WriteLine($"Antal postnumre indlæst: {postalCodes.Count}");
+            Console.WriteLine($"4000 fundet: {postalCodes.Any(p => p.PostalCode == "4000")}");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fejl ved indlæsning af postnumre: {ex.Message}";
+        }
+    }
 
     private async Task SearchAsync()
     {
@@ -101,20 +135,58 @@ else if (location != null && forecasts != null)
         {
             var client = HttpClientFactory.CreateClient();
 
-            // 1. Find the city
-            var geoUrl = "https://geocoding-api.open-meteo.com/v1/search" +
-                         $"?name={Uri.EscapeDataString(query)}&count=1&language=da";
+            // 1. Find den præcise by / postnummer
+            // Bygger URL linket
+            GeocodingResult? place = null;
 
-            var geo = await client.GetFromJsonAsync<GeocodingResponse>(geoUrl);
-            var place = geo?.Results?.FirstOrDefault();
-
-            if (place == null)
+            if (query.Length == 4 &&
+                query.All(char.IsDigit))
             {
-                errorMessage = $"Kunne ikke finde et sted der hedder \"{query}\".";
-                return;
-            }
+                // hvis længen af queryen er 4 og kun er tal søges der efter postnummer
+                var postalCode = postalCodes.FirstOrDefault(
+                    p => p.PostalCode == query);
 
-            // 2. Get the 5-day forecast
+                if (postalCode != null)
+                {
+                    place = new GeocodingResult
+                    {
+                        Name = postalCode.Name,
+                        Latitude = postalCode.Latitude,
+                        Longitude = postalCode.Longitude,
+                        Region = postalCode.Region,
+                        Country = postalCode.Country
+                    };
+                }
+                else
+                {
+                    errorMessage =
+                        $"Postnummeret {query} blev ikke fundet.";
+                    return;
+                }
+            }
+            else
+            {
+                // Hvis ikke postnummer søges der efter by
+                var geoUrl =
+                    "https://geocoding-api.open-meteo.com/v1/search" +
+                    $"?name={Uri.EscapeDataString(query)}" +
+                    "&count=1&language=da";
+
+                var geo =
+                    await client.GetFromJsonAsync<GeocodingResponse>(
+                        geoUrl);
+
+                place = geo?.Results?.FirstOrDefault();
+
+                if (place == null)
+                {
+                    errorMessage =
+                        $"Kunne ikke finde et sted der hedder \"{query}\".";
+                    return;
+                }
+            }           
+
+            // 2. Få en 5 dages forecast
             var lat = place.Latitude.ToString(CultureInfo.InvariantCulture);
             var lon = place.Longitude.ToString(CultureInfo.InvariantCulture);
 
