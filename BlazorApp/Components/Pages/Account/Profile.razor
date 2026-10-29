@@ -1,0 +1,19 @@
+@page "/account"
+@using Microsoft.AspNetCore.Components.Authorization
+@* HTTP GET /account: Vis indhold ud fra brugerens loginstatus. *@
+
+<PageTitle>Min konto</PageTitle>
+<h1>Min konto</h1>
+<AuthorizeView>
+    <Authorized Context="auth">
+        <p>Du er logget ind som <strong>@auth.User.Identity?.Name</strong>.</p>
+        @* HTTP POST /account/logout: Fjern login-cookien og log ud. *@
+        <form method="post" action="/account/logout" data-enhance="false">
+            <AntiforgeryToken />
+            <button type="submit" class="btn btn-secondary">Log ud</button>
+        </form>
+    </Authorized>
+    <NotAuthorized>
+        <p>Du skal <a href="/login">logge ind</a> for at se din konto.</p>
+    </NotAuthorized>
+</AuthorizeView>
