@@ -1,35 +1,65 @@
 .map-container {
-    position: relative;
-    width: 600px;
-    max-width: 100%;
-    aspect-ratio: 600 / 473;
-    margin-bottom: 1rem;
+    width: 100%;
+    max-width: 1000px;
+    height: 650px;
+    max-height: 75vh;
+    margin-bottom: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
 }
 
-.map-image {
+/* Markers are created by Leaflet in JS, so they need ::deep to pick up these scoped styles. */
+.map-container ::deep .temp-marker span {
     width: 100%;
     height: 100%;
-    display: block;
-}
-
-.map-land {
-    fill: #eef3f7;
-    stroke: #333;
-    stroke-width: 0.15;
-    vector-effect: non-scaling-stroke;
-}
-
-.temp-marker {
-    position: absolute;
-    transform: translate(-50%, -50%);
-    width: 28px;
-    height: 28px;
     border-radius: 50%;
     border: 1px solid rgba(0, 0, 0, 0.35);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.6rem;
+    font-size: 0.65rem;
+    font-weight: 600;
     color: white;
     text-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.map-container ::deep .station-name {
+    padding: 0 4px;
+    font-size: 0.65rem;
+}
+
+.map-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    color: #555;
+}
+
+.legend-station {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: linear-gradient(90deg, rgb(0, 60, 255), rgb(255, 60, 0));
+    border: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+.time-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.time-controls input {
+    width: auto;
+}
+
+.measured-at {
+    margin-bottom: 0.5rem;
+    font-size: 1.05rem;
 }
