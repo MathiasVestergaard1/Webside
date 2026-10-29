@@ -2,129 +2,483 @@
 @attribute [StreamRendering]
 @rendermode InteractiveServer
 @using System.Globalization
+@using System.Text.Json
 @using BlazorApp.Components.API
+@inject IHttpClientFactory HttpClientFactory
+@inject IWebHostEnvironment Environment
 @inject Api Api
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
 <PageTitle>Weather</PageTitle>
 
-<h2>Temperatures in Denmark</h2>
+<h1>Vejret i Danmark</h1>
 
-<div class="time-controls">
-    <button class="btn btn-outline-secondary" @onclick="() => ChangeHourAsync(-1)" disabled="@isLoading">&lsaquo; 1 hour</button>
-    <input class="form-control" type="datetime-local" step="3600" aria-label="Time (Danish time)"
+<div class="card mb-4">
+    <div class="card-body">
+        <h2 class="h5">Vejrudsigt</h2>
+        <p>Søg efter en by eller et dansk postnummer.</p>
+
+        <div class="d-flex gap-2 mb-3">
+            <input type="text"
+                   class="form-control"
+                   placeholder="Søg efter by eller postnummer..."
+                   @bind="searchText"
+                   @bind:event="oninput"
+                   @onkeydown="HandleKeyDown" />
+
+            <button class="btn btn-primary"
+                    @onclick="SearchAsync"
+                    disabled="@isLoading">
+                Søg
+            </button>
+        </div>
+
+        @if (isLoading)
+        {
+            <p><em>Henter vejrdata...</em></p>
+        }
+        else if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-warning">@errorMessage</div>
+        }
+
+        @if (location is not null && forecasts is not null)
+        {
+            <h3>
+                @location.Name
+                <small class="text-muted">
+                    @string.Join(", ", new[] { location.Region, location.Country }
+                        .Where(s => !string.IsNullOrEmpty(s)))
+                </small>
+            </h3>
+
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Dato</th>
+                            <th>Gennemsnit</th>
+                            <th>Max</th>
+                            <th>Min</th>
+                            <th>Vind (m/s)</th>
+                            <th>Vejrforhold</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var day in forecasts)
+                        {
+                            <tr>
+                                <td>@day.Date.ToString("dddd d. MMM", daCulture)</td>
+                                <td>@day.TempMean.ToString("F1", daCulture) °C</td>
+                                <td>@day.TempMax.ToString("F1", daCulture) °C</td>
+                                <td>@day.TempMin.ToString("F1", daCulture) °C</td>
+                                <td>@day.WindSpeed.ToString("F1", daCulture)</td>
+                                <td>@GetWeatherDescription(day.WeatherCode)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<hr />
+
+<h2>Aktuelle temperaturer i Danmark</h2>
+
+<div class="time-controls d-flex flex-wrap align-items-center gap-2 mb-3">
+    <button class="btn btn-outline-secondary"
+            @onclick="() => ChangeHourAsync(-1)"
+            disabled="@isLoading">
+        &lsaquo; 1 time
+    </button>
+
+    <input class="form-control"
+           style="max-width: 260px"
+           type="datetime-local"
+           step="3600"
+           aria-label="Tidspunkt (dansk tid)"
            max="@CurrentDanishHour().ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture)"
-           @bind="selectedTime" @bind:after="LoadTemperaturesAsync" />
-    <button class="btn btn-outline-secondary" @onclick="() => ChangeHourAsync(1)" disabled="@(isLoading || selectedTime >= CurrentDanishHour())">1 hour &rsaquo;</button>
-    <button class="btn btn-secondary" @onclick="ShowLatestAsync" disabled="@isLoading">Latest</button>
+           @bind="selectedTime"
+           @bind:after="LoadTemperaturesAsync" />
+
+    <button class="btn btn-outline-secondary"
+            @onclick="() => ChangeHourAsync(1)"
+            disabled="@(isLoading || selectedTime >= CurrentDanishHour())">
+        1 time &rsaquo;
+    </button>
+
+    <button class="btn btn-secondary"
+            @onclick="ShowLatestAsync"
+            disabled="@isLoading">
+        Seneste
+    </button>
+
     @if (isLoading)
     {
-        <span class="text-muted">Loading...</span>
+        <span class="text-muted">Henter data...</span>
     }
 </div>
 
-@if (errorMessage is not null)
+@if (!string.IsNullOrEmpty(temperatureErrorMessage))
 {
-    <p class="text-danger">@errorMessage</p>
+    <div class="alert alert-warning">@temperatureErrorMessage</div>
 }
 else if (temperatures is { Count: 0 })
 {
-    <p class="text-muted">No measurements found for this time.</p>
+    <p class="text-muted">Ingen målinger fundet for dette tidspunkt.</p>
 }
-else if (temperatures is not null)
+else if (temperatures is not null && temperatures.Count > 0)
 {
-    var mainHour = temperatures.GroupBy(t => t.ObservedFrom).MaxBy(g => g.Count())!.Key;
+    var mainHour = temperatures
+        .GroupBy(t => t.ObservedFrom)
+        .MaxBy(g => g.Count())!
+        .Key;
+
     var otherHours = temperatures.Count(t => t.ObservedFrom != mainHour);
     var start = ToDanishTime(mainHour);
+
     <p class="measured-at">
-        Measured between <strong>@FormatTime(start)</strong> and <strong>@FormatTime(start.AddHours(1))</strong>
-        on @start.ToString("dddd d MMMM yyyy", CultureInfo.InvariantCulture) (Danish time)
+        Målt mellem
+        <strong>@FormatTime(start)</strong> og
+        <strong>@FormatTime(start.AddHours(1))</strong>
+        den @start.ToString("dddd d. MMMM yyyy", daCulture)
+        (dansk tid).
+
         @if (otherHours > 0)
         {
-            <span class="text-muted"> &middot; @otherHours of @temperatures.Count stations are from an earlier hour</span>
+            <span class="text-muted">
+                &middot; @otherHours af @temperatures.Count stationer
+                har målinger fra en tidligere time.
+            </span>
         }
     </p>
 }
 
 <div class="form-check my-2">
-    <input class="form-check-input" type="checkbox" id="showStationNames"
-           @bind="showStationNames" @bind:after="UpdateShowNamesAsync" />
-    <label class="form-check-label" for="showStationNames">Show station names</label>
+    <input class="form-check-input"
+           type="checkbox"
+           id="showStationNames"
+           @bind="showStationNames"
+           @bind:after="UpdateShowNamesAsync" />
+
+    <label class="form-check-label" for="showStationNames">
+        Vis stationsnavne
+    </label>
 </div>
 
 <div class="map-container" @ref="mapElement"></div>
 
 <p class="map-legend">
-    <span class="legend-station"></span> Weather station (°C, hover for name)
+    <span class="legend-station"></span>
+    Vejrstation (°C, hold musen over for at se navnet)
 </p>
 
 @code {
-    private WeatherForecast[]? forecasts;
-    private bool isLoading = false;
-    private List<StationTemperature>? temperatures;
+    private static readonly CultureInfo daCulture = new("da-DK");
+
+    private static readonly TimeZoneInfo DanishTimeZone =
+        TimeZoneInfo.FindSystemTimeZoneById("Europe/Copenhagen");
+
+    // City and postal-code search.
+    private string searchText = "";
     private string? errorMessage;
+    private GeocodingResult? location;
+    private List<DayForecast>? forecasts;
+    private List<PostalCodeEntry> postalCodes = new();
+
+    // Shared loading indicator.
+    private bool isLoading;
+
+    // Hourly station temperatures.
+    private List<StationTemperature>? temperatures;
+    private string? temperatureErrorMessage;
     private bool showStationNames;
+    private DateTime selectedTime = CurrentDanishHour();
+
+    // Map and JavaScript interop.
     private ElementReference mapElement;
     private IJSObjectReference? mapModule;
-    private DateTime selectedTime = CurrentDanishHour();
-    private int loadVersion;
 
-    private static readonly TimeZoneInfo DanishTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Copenhagen");
+    // Prevent stale hourly requests from overwriting newer results.
+    private int loadVersion;
 
     protected override async Task OnInitializedAsync()
     {
-        // Simulate asynchronous loading to demonstrate streaming rendering
-        await Task.Delay(500);
+        await LoadPostalCodesAsync();
+    }
 
-        var startDate = DateOnly.FromDateTime(DateTime.Now);
-        var summaries = new[] { "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching" };
-        forecasts = Enumerable.Range(1, 5).Select(index => new WeatherForecast
+    private async Task LoadPostalCodesAsync()
+    {
+        var filePath = Path.Combine(
+            Environment.WebRootPath,
+            "data",
+            "postnumre.json");
+
+        try
         {
-            Date = startDate.AddDays(index),
-            TemperatureC = Random.Shared.Next(-20, 55),
-            Summary = summaries[Random.Shared.Next(summaries.Length)]
-        }).ToArray();
+            if (!File.Exists(filePath))
+            {
+                errorMessage = "Filen med danske postnumre blev ikke fundet.";
+                return;
+            }
+
+            var json = await File.ReadAllTextAsync(filePath);
+
+            postalCodes =
+                JsonSerializer.Deserialize<List<PostalCodeEntry>>(
+                    json,
+                    new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    })
+                ?? new List<PostalCodeEntry>();
+        }
+        catch (Exception)
+        {
+            errorMessage = "Der opstod en fejl ved indlæsning af postnumre.";
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SearchAsync();
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        var query = searchText.Trim();
+
+        if (string.IsNullOrEmpty(query) || isLoading)
+        {
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+        location = null;
+        forecasts = null;
+
+        try
+        {
+            var client = HttpClientFactory.CreateClient();
+            GeocodingResult? place = null;
+
+            // Four-digit numeric searches use the local postal-code file.
+            if (query.Length == 4 && query.All(char.IsDigit))
+            {
+                var postalCode = postalCodes.FirstOrDefault(
+                    p => p.PostalCode == query);
+
+                if (postalCode is null)
+                {
+                    errorMessage = $"Postnummeret {query} blev ikke fundet.";
+                    return;
+                }
+
+                place = new GeocodingResult
+                {
+                    Name = postalCode.Name,
+                    Latitude = postalCode.Latitude,
+                    Longitude = postalCode.Longitude,
+                    Region = postalCode.Region,
+                    Country = postalCode.Country
+                };
+            }
+            else
+            {
+                // Search for a city using Open-Meteo geocoding.
+                var geoUrl =
+                    "https://geocoding-api.open-meteo.com/v1/search" +
+                    $"?name={Uri.EscapeDataString(query)}" +
+                    "&count=1&language=da";
+
+                var geo =
+                    await client.GetFromJsonAsync<GeocodingResponse>(geoUrl);
+
+                place = geo?.Results?.FirstOrDefault();
+
+                if (place is null)
+                {
+                    errorMessage =
+                        $"Kunne ikke finde et sted der hedder \"{query}\".";
+
+                    return;
+                }
+            }
+
+            // Fetch the five-day forecast.
+            var lat = place.Latitude.ToString(
+                CultureInfo.InvariantCulture);
+
+            var lon = place.Longitude.ToString(
+                CultureInfo.InvariantCulture);
+
+            var forecastUrl =
+                "https://api.open-meteo.com/v1/forecast" +
+                $"?latitude={lat}&longitude={lon}" +
+                "&daily=weather_code,temperature_2m_max,temperature_2m_min,temperature_2m_mean,wind_speed_10m_max" +
+                "&wind_speed_unit=ms&timezone=auto&forecast_days=5";
+
+            var forecast =
+                await client.GetFromJsonAsync<ForecastResponse>(forecastUrl);
+
+            var daily = forecast?.Daily;
+
+            if (daily is null ||
+                daily.Time.Count == 0 ||
+                daily.TemperatureMean.Count < daily.Time.Count ||
+                daily.TemperatureMax.Count < daily.Time.Count ||
+                daily.TemperatureMin.Count < daily.Time.Count ||
+                daily.WindSpeedMax.Count < daily.Time.Count ||
+                daily.WeatherCode.Count < daily.Time.Count)
+            {
+                errorMessage = "Vejrdata kunne ikke hentes.";
+                return;
+            }
+
+            forecasts = Enumerable.Range(0, daily.Time.Count)
+                .Select(i => new DayForecast
+                {
+                    Date = DateOnly.Parse(
+                        daily.Time[i],
+                        CultureInfo.InvariantCulture),
+
+                    TempMean = daily.TemperatureMean[i],
+                    TempMax = daily.TemperatureMax[i],
+                    TempMin = daily.TemperatureMin[i],
+                    WindSpeed = daily.WindSpeedMax[i],
+                    WeatherCode = daily.WeatherCode[i]
+                })
+                .ToList();
+
+            location = place;
+        }
+        catch (HttpRequestException)
+        {
+            errorMessage =
+                "Der var et problem med at kontakte vejrtjenesten. Prøv igen senere.";
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            errorMessage = "Vejrtjenesten returnerede ugyldige data.";
+        }
+        catch (Exception)
+        {
+            errorMessage = "Der opstod en uventet fejl under søgningen.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static string GetWeatherDescription(int code)
+    {
+        return code switch
+        {
+            0 => "Klart",
+            1 => "Overvejende klart",
+            2 => "Delvist skyet",
+            3 => "Overskyet",
+            45 or 48 => "Tåge",
+            51 or 53 or 55 => "Støvregn",
+            56 or 57 => "Frysende støvregn",
+            61 or 63 or 65 => "Regn",
+            66 or 67 => "Frysende regn",
+            71 or 73 or 75 => "Sne",
+            77 => "Snekorn",
+            80 or 81 or 82 => "Regnbyger",
+            85 or 86 => "Snebyger",
+            95 => "Tordenvejr",
+            96 or 99 => "Tordenvejr med hagl",
+            _ => "Ukendt"
+        };
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (!firstRender)
         {
-            mapModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/weatherMap.js");
+            return;
+        }
+
+        try
+        {
+            mapModule = await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./js/weatherMap.js");
+
             await mapModule.InvokeVoidAsync("init", mapElement);
             await LoadTemperaturesAsync();
-            StateHasChanged();
+        }
+        catch (JSDisconnectedException)
+        {
+            // The Blazor circuit has disconnected.
+        }
+        catch (JSException)
+        {
+            temperatureErrorMessage =
+                "Vejrkortet kunne ikke indlæses.";
+            await InvokeAsync(StateHasChanged);
         }
     }
 
     private static string TemperatureColor(double celsius)
     {
-        // Blue at 0°C, red at 25°C, clamped and interpolated in between.
+        // Blue at 0°C, red at 25°C.
         var t = Math.Clamp(celsius / 25.0, 0.0, 1.0);
         var red = (int)(t * 255);
         var blue = (int)((1 - t) * 255);
+
         return $"rgb({red}, 60, {blue})";
     }
 
     private static DateTime CurrentDanishHour()
     {
-        var now = TimeZoneInfo.ConvertTime(DateTime.UtcNow, DanishTimeZone);
-        return new DateTime(now.Year, now.Month, now.Day, now.Hour, 0, 0);
+        var now = TimeZoneInfo.ConvertTime(
+            DateTimeOffset.UtcNow,
+            DanishTimeZone);
+
+        return new DateTime(
+            now.Year,
+            now.Month,
+            now.Day,
+            now.Hour,
+            0,
+            0);
     }
 
-    private static DateTime ToDanishTime(DateTimeOffset value) =>
-        TimeZoneInfo.ConvertTime(value, DanishTimeZone).DateTime;
+    private static DateTime ToDanishTime(DateTimeOffset value)
+    {
+        return TimeZoneInfo.ConvertTime(value, DanishTimeZone).DateTime;
+    }
 
-    // Rounds to whole degrees without producing "-0" for values like -0.3.
-    private static int RoundTemperature(double celsius) => (int)Math.Round(celsius);
+    private static int RoundTemperature(double celsius)
+    {
+        return (int)Math.Round(celsius);
+    }
 
-    private static string FormatTime(DateTime value) =>
-        value.ToString("HH:mm", CultureInfo.InvariantCulture);
+    private static string FormatTime(DateTime value)
+    {
+        return value.ToString("HH:mm", CultureInfo.InvariantCulture);
+    }
 
     private async Task ChangeHourAsync(int hours)
     {
-        selectedTime = selectedTime.AddHours(hours);
+        var newTime = selectedTime.AddHours(hours);
+
+        if (newTime > CurrentDanishHour())
+        {
+            newTime = CurrentDanishHour();
+        }
+
+        selectedTime = newTime;
         await LoadTemperaturesAsync();
     }
 
@@ -136,25 +490,57 @@ else if (temperatures is not null)
 
     private async Task LoadTemperaturesAsync()
     {
-        // Snap to whole hours (DMI values are hourly) and never ask for the future.
-        selectedTime = new DateTime(selectedTime.Year, selectedTime.Month, selectedTime.Day, selectedTime.Hour, 0, 0);
+        // Normalize the selected time to a whole hour.
+        selectedTime = new DateTime(
+            selectedTime.Year,
+            selectedTime.Month,
+            selectedTime.Day,
+            selectedTime.Hour,
+            0,
+            0);
+
         if (selectedTime > CurrentDanishHour())
         {
             selectedTime = CurrentDanishHour();
         }
 
-        // Skips the hour that doesn't exist when clocks go forward in spring.
-        var local = DanishTimeZone.IsInvalidTime(selectedTime) ? selectedTime.AddHours(1) : selectedTime;
-        var at = new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(local, DanishTimeZone));
-
-        // If the user clicks quickly, only the newest request is allowed to update the page.
         var version = ++loadVersion;
+
         isLoading = true;
-        errorMessage = null;
+        temperatureErrorMessage = null;
 
         try
         {
+            // Resolve daylight-saving transitions safely.
+            var local = DateTime.SpecifyKind(
+                selectedTime,
+                DateTimeKind.Unspecified);
+
+            if (DanishTimeZone.IsInvalidTime(local))
+            {
+                local = local.AddHours(1);
+                selectedTime = local;
+            }
+
+            DateTimeOffset at;
+
+            if (DanishTimeZone.IsAmbiguousTime(local))
+            {
+                // During the autumn clock change, use the earlier
+                // occurrence of the selected local time.
+                var offsets = DanishTimeZone.GetAmbiguousTimeOffsets(local);
+                var offset = offsets.Max();
+
+                at = new DateTimeOffset(local, offset);
+            }
+            else
+            {
+                at = new DateTimeOffset(
+                    TimeZoneInfo.ConvertTimeToUtc(local, DanishTimeZone));
+            }
+
             var result = await Api.GetDenmarkTemperaturesAsync(at);
+
             if (version != loadVersion)
             {
                 return;
@@ -162,7 +548,7 @@ else if (temperatures is not null)
 
             temperatures = result;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             if (version != loadVersion)
             {
@@ -170,11 +556,21 @@ else if (temperatures is not null)
             }
 
             temperatures = null;
-            errorMessage = $"Failed to load temperatures: {ex.Message}";
+            temperatureErrorMessage =
+                "Temperaturmålingerne kunne ikke hentes. Prøv igen senere.";
+        }
+        finally
+        {
+            if (version == loadVersion)
+            {
+                isLoading = false;
+            }
         }
 
-        isLoading = false;
-        await UpdateMapStationsAsync();
+        if (version == loadVersion)
+        {
+            await UpdateMapStationsAsync();
+        }
     }
 
     private async Task UpdateMapStationsAsync()
@@ -184,28 +580,71 @@ else if (temperatures is not null)
             return;
         }
 
-        var stations = (temperatures ?? []).Select(s => new
+        var stations = (temperatures ?? new List<StationTemperature>())
+            .Select(s =>
+            {
+                var observed = ToDanishTime(s.ObservedFrom);
+
+                return new
+                {
+                    s.Name,
+                    s.Latitude,
+                    s.Longitude,
+                    Label = $"{RoundTemperature(s.TemperatureCelsius)}°",
+                    Details =
+                        $"{s.TemperatureCelsius:F1} °C, " +
+                        $"{FormatTime(observed)}–{FormatTime(observed.AddHours(1))}",
+                    Color = TemperatureColor(s.TemperatureCelsius)
+                };
+            });
+
+        try
         {
-            s.Name,
-            s.Latitude,
-            s.Longitude,
-            Label = $"{RoundTemperature(s.TemperatureCelsius)}°",
-            Details = $"{s.TemperatureCelsius:F1} °C, {FormatTime(ToDanishTime(s.ObservedFrom))}–{FormatTime(ToDanishTime(s.ObservedFrom).AddHours(1))}",
-            Color = TemperatureColor(s.TemperatureCelsius),
-        });
-        await mapModule.InvokeVoidAsync("setStations", stations);
+            await mapModule.InvokeVoidAsync("setStations", stations);
+            await mapModule.InvokeVoidAsync(
+                "setShowNames",
+                showStationNames);
+        }
+        catch (JSDisconnectedException)
+        {
+            // The Blazor circuit has disconnected.
+        }
+        catch (JSException)
+        {
+            temperatureErrorMessage =
+                "Vejrkortet kunne ikke opdateres.";
+        }
     }
 
     private async Task UpdateShowNamesAsync()
     {
-        if (mapModule is not null)
+        if (mapModule is null)
         {
-            await mapModule.InvokeVoidAsync("setShowNames", showStationNames);
+            return;
+        }
+
+        try
+        {
+            await mapModule.InvokeVoidAsync(
+                "setShowNames",
+                showStationNames);
+        }
+        catch (JSDisconnectedException)
+        {
+            // The Blazor circuit has disconnected.
+        }
+        catch (JSException)
+        {
+            temperatureErrorMessage =
+                "Stationsnavnene kunne ikke opdateres.";
         }
     }
 
     public async ValueTask DisposeAsync()
     {
+        // Invalidate any outstanding hourly request.
+        loadVersion++;
+
         if (mapModule is null)
         {
             return;
@@ -218,15 +657,11 @@ else if (temperatures is not null)
         }
         catch (JSDisconnectedException)
         {
-            // The circuit is already gone (e.g. the tab was closed), so there is nothing to clean up.
+            // The circuit is already gone.
         }
-    }
-
-    private class WeatherForecast
-    {
-        public DateOnly Date { get; set; }
-        public int TemperatureC { get; set; }
-        public string? Summary { get; set; }
-        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+        catch (JSException)
+        {
+            // JavaScript cleanup is no longer available.
+        }
     }
 }
