@@ -1,80 +1,290 @@
+
+/* ===== Nordic Neo-Retro Theme ===== */
+
 .page {
-    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    margin: 0;
+    background: linear-gradient(
+        135deg,
+        #f7f9f6 0%,
+        #edf5f1 55%,
+        #e4f0eb 100%
+    );
+}
+
+/* ===== Main Content ===== */
+
+main {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
     display: flex;
     flex-direction: column;
 }
 
-main {
+.content {
     flex: 1;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 20px 24px;
 }
+
+/* ===== Sidebar ===== */
 
 .sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    position: relative;
+    background: linear-gradient(
+        180deg,
+        #263f47 0%,
+        #304f54 55%,
+        #3b615e 100%
+    );
 }
+
+/* ===== Top Header ===== */
 
 .top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
-    justify-content: flex-end;
-    height: 3.5rem;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+
+    min-height: 76px;
+    padding: 14px 24px;
+
+    background: rgba(255, 255, 255, 0.88);
+    border-bottom: 1px solid #dce8e3;
+
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    position: sticky;
+    top: 0;
+    z-index: 20;
 }
 
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        white-space: nowrap;
-        margin-left: 1.5rem;
-        text-decoration: none;
-    }
+/* ===== Search Bar ===== */
 
-    .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
-        text-decoration: underline;
-    }
+.header-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+    max-width: 500px;
 
-    .top-row ::deep a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
+    background: #f7f9f6;
+    border: 1px solid #d5e2dc;
+    border-radius: 2px;
 
-@media (max-width: 640.98px) {
-    .top-row {
-        justify-content: space-between;
-    }
+    padding: 5px 8px 5px 15px;
+}
 
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        margin-left: 0;
+.search-icon {
+    color: #607f79;
+    font-size: 24px;
+    line-height: 1;
+}
+
+.header-search input {
+    flex: 1;
+    min-width: 0;
+
+    background: transparent;
+    border: none;
+    outline: none;
+
+    color: #263f47;
+    font-size: 14px;
+}
+
+.header-search input::placeholder {
+    color: #80958f;
+}
+
+
+/* ===== Nordic Neo-Retro Buttons ===== */
+
+.search-btn,
+.login-btn {
+    height: 42px;
+    padding: 0 20px;
+
+    border: 1px solid;
+    border-radius: 2px;
+
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+/* Mint Search Button */
+.search-btn {
+    background: linear-gradient(
+        180deg,
+        #b8ded4 0%,
+        #72b4a6 100%
+    );
+
+    color: #214d46;
+    border-color: #477d76;
+    box-shadow: 0 3px 0 #477d76;
+}
+
+/* Warm Yellow Login Button */
+.login-btn {
+    background: linear-gradient(
+        180deg,
+        #ffe4a6 0%,
+        #f0b956 100%
+    );
+
+    color: #594221;
+    border-color: #ba8f42;
+    box-shadow: 0 3px 0 #ba8f42;
+}
+
+/* Hover */
+.search-btn:not(:disabled):hover,
+.login-btn:not(:disabled):hover {
+    transform: translateY(-1px);
+}
+
+/* Click */
+.search-btn:not(:disabled):active,
+.login-btn:not(:disabled):active {
+    transform: translateY(2px);
+    box-shadow: none;
+}
+
+/* Disabled - keep colors visible */
+.search-btn:disabled,
+.login-btn:disabled {
+    opacity: 1;
+    cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .search-btn,
+    .login-btn {
+        transition: none;
     }
 }
+
+/* ===== Login ===== */
+
+.header-login {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.header-login input {
+    min-width: 0;
+    width: 125px;
+    padding: 10px 12px;
+
+    background: #ffffff;
+    border: 1px solid #d5e2dc;
+    border-radius: 2px;
+
+    color: #263f47;
+    font-size: 13px;
+}
+
+.header-login input:focus,
+.header-search:focus-within {
+    border-color: #89b8ae;
+    box-shadow: 0 0 0 3px rgba(137, 184, 174, 0.16);
+    outline: none;
+}
+
+/* ===== Desktop Layout ===== */
 
 @media (min-width: 641px) {
     .page {
         flex-direction: row;
+        height: 100vh;
+        min-height: 0;
+        overflow: hidden;
     }
 
     .sidebar {
-        width: 250px;
+        flex: 0 0 250px;
         height: 100vh;
-        position: sticky;
-        top: 0;
+        position: relative;
     }
 
+    main {
+        height: 100vh;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .content {
+        min-height: 0;
+        overflow-y: auto;
+    }
+}
+
+/* ===== Tablet ===== */
+
+@media (max-width: 1100px) {
     .top-row {
-        position: sticky;
-        top: 0;
-        z-index: 1;
+        gap: 12px;
     }
 
-    .top-row.auth ::deep a:first-child {
+    .header-login input {
+        width: 100px;
+    }
+
+    .content {
+        padding: 16px;
+    }
+}
+
+/* ===== Mobile ===== */
+
+@media (max-width: 640.98px) {
+    .top-row {
+        position: relative;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 14px 16px;
+    }
+
+    .header-search {
+        max-width: none;
+        width: 100%;
+    }
+
+    .header-login {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .header-login input {
         flex: 1;
-        text-align: right;
         width: 0;
     }
 
-    .top-row, article {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
+    .content {
+        padding: 12px;
     }
 }
+
+/* ===== Blazor Error UI ===== */
 
 #blazor-error-ui {
     color-scheme: light only;
@@ -90,9 +300,9 @@ main {
     z-index: 1000;
 }
 
-    #blazor-error-ui .dismiss {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
-    }
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}

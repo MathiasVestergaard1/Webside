@@ -1,7 +1,121 @@
 ﻿@page "/"
+@rendermode InteractiveServer
+@using BlazorApp.Models
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Home - Denmark Weather</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="home-page">
 
-Welcome to your new app.
+    @* Time of day preview controls *@
+    <div class="time-preview">
+        <span>Preview time: @currentCity.TimeOfDay</span>
+
+        @foreach (var time in new[] { "morning", "day", "evening", "night" })
+        {
+            <button type="button"
+                    class="time-btn @(currentCity.TimeOfDay == time ? "selected" : "")"
+                    @onclick="() => ChangeTime(time)">
+                @time
+            </button>
+        }
+    </div>
+
+    @* Main weather card *@
+    <section class="weather-scene @currentCity.Theme @currentCity.TimeOfDay @currentCity.WeatherType">
+
+        <div class="scene-overlay time-layer"></div>
+        <div class="scene-overlay weather-layer"></div>
+
+        <div class="weather-content">
+            <span class="location-label">📍 Current Location</span>
+            <h1>@currentCity.CityName</h1>
+            <p class="main-temperature">
+                @currentCity.TemperatureCelsius°C
+            </p>
+            <p class="weather-description">
+                @currentCity.WeatherType
+            </p>
+        </div>
+
+    </section>
+
+    @* Nearby cities *@
+    <section class="nearby-section">
+
+        <div class="section-heading">
+            <h2>Nearby Cities</h2>
+            <span>Closest cities to you</span>
+        </div>
+
+        <div class="nearby-grid">
+            @foreach (var city in nearbyCities)
+            {
+                <article class="nearby-card @city.Theme @city.TimeOfDay @city.WeatherType">
+
+                    <div class="city-scene">
+                        <div class="scene-overlay weather-layer"></div>
+                    </div>
+
+                    <div class="city-info">
+                        <h3>@city.CityName</h3>
+                        <p class="city-temperature">
+                            @city.TemperatureCelsius°C
+                        </p>
+                        <span>@city.WeatherType</span>
+                    </div>
+
+                </article>
+            }
+        </div>
+
+    </section>
+
+
+</div>
+
+
+@code {
+    private CityWeatherCard currentCity = new()
+    {
+        CityName = "DTU Ballerup",
+        TemperatureCelsius = 12,
+        WeatherType = "cloudy",
+        TimeOfDay = "day",
+        Theme = "dtu-ballerup"
+    };
+
+    private readonly List<CityWeatherCard> nearbyCities =
+    [
+        new()
+        {
+            CityName = "Copenhagen",
+            TemperatureCelsius = 11,
+            WeatherType = "rain",
+            TimeOfDay = "day",
+            Theme = "copenhagen"
+        },
+        new()
+        {
+            CityName = "Herlev",
+            TemperatureCelsius = 10,
+            WeatherType = "cloudy",
+            TimeOfDay = "day",
+            Theme = "default-city"
+        },
+        new()
+        {
+            CityName = "DTU Lyngby",
+            TemperatureCelsius = 9,
+            WeatherType = "sunny",
+            TimeOfDay = "day",
+            Theme = "dtu-lyngby"
+        }
+    ];
+
+
+    private void ChangeTime(string time)
+    {
+        currentCity.TimeOfDay = time;
+    }
+
+}

@@ -1,18 +1,56 @@
-﻿@inherits LayoutComponentBase
+﻿
+@inherits LayoutComponentBase
 
 <div class="page">
+
+    <!-- Sidebar -->
     <div class="sidebar">
         <NavMenu />
     </div>
 
     <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
 
-        <article class="content px-4">
+        <!-- Top Header -->
+        <header class="top-row">
+
+            <div class="header-search">
+                <span class="search-icon">⌕</span>
+
+                <input type="search"
+                       placeholder="Search for a city..."
+                       aria-label="Search for a city" />
+
+                <button type="button" class="search-btn" disabled>
+                    Search
+                </button>
+            </div>
+
+            <!-- Login UI - frontend only -->
+            <div class="header-login">
+
+                <input type="text"
+                       placeholder="Username"
+                       aria-label="Username"
+                       autocomplete="username" />
+
+                <input type="password"
+                       placeholder="Password"
+                       aria-label="Password"
+                       autocomplete="current-password" />
+
+                <button type="button" class="login-btn" disabled>
+                    Log in
+                </button>
+
+            </div>
+
+        </header>
+
+        <!-- Page Content -->
+        <article class="content">
             @Body
         </article>
+
     </main>
 </div>
 

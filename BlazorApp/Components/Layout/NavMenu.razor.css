@@ -15,9 +15,32 @@
     background-color: rgba(255, 255, 255, 0.5);
 }
 
+/* Sidebar brand header */
+
 .top-row {
-    min-height: 3.5rem;
-    background-color: rgba(0,0,0,0.4);
+    min-height: 76px;
+    display: flex;
+    align-items: center;
+
+    background: #192f35;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.vejrville-brand {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin: 0;
+    padding: 8px 12px;
+    text-decoration: none;
+}
+
+.vejrville-logo {
+    display: block;
+    width: 100%;
+    max-width: 175px;
+    height: auto;
+    object-fit: contain;
 }
 
 .navbar-brand {
@@ -71,18 +94,72 @@
         width: 100%;
     }
 
-.nav-item ::deep a.active {
-    background-color: rgba(255,255,255,0.37);
-    color: white;
+
+/* ===== Nordic Neo-Retro Navigation ===== */
+
+.nav-item ::deep .nav-link {
+    color: #e4eeeb;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 2px;
+
+    min-height: 46px;
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 500;
+
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
 }
 
+/* Active page */
+.nav-item ::deep a.active {
+    background: #89b8ae;
+    color: #263f47;
+    font-weight: 700;
+    border-color: #b7d7cf;
+}
+
+/* Hover */
 .nav-item ::deep .nav-link:hover {
-    background-color: rgba(255,255,255,0.1);
-    color: white;
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+
+/* Active hover */
+.nav-item ::deep a.active:hover {
+    background: #a4cec4;
+    color: #263f47;
+}
+
+/* Keyboard navigation */
+.nav-item ::deep .nav-link:focus-visible {
+    outline: 2px solid #f3c66a;
+    outline-offset: 2px;
 }
 
 .nav-scrollable {
-    display: none;
+    height: calc(100vh - 76px);
+    overflow-y: auto;
+}
+
+@media (min-width: 641px) {
+    .navbar-toggler {
+        display: none;
+    }
+
+    .nav-scrollable {
+        display: block;
+        height: calc(100vh - 76px);
+        overflow-y: auto;
+    }
 }
 
 .navbar-toggler:checked ~ .nav-scrollable {
@@ -102,4 +179,83 @@
         height: calc(100vh - 3.5rem);
         overflow-y: auto;
     }
+}
+
+/* Navigation icons */
+
+.nav-item ::deep .nav-link .bi {
+    flex-shrink: 0;
+    margin-right: 0;
+    top: 0;
+}
+
+.nav-item ::deep .nav-link.active .bi {
+    filter: brightness(0) saturate(100%)
+            invert(20%) sepia(17%)
+            saturate(1000%) hue-rotate(142deg);
+}
+
+
+/* ===== VejrVille Retro Logo ===== */
+
+.vejrville-brand {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin: 0;
+    padding: 6px 8px;
+    text-decoration: none;
+}
+
+.vejrville-logo {
+    display: block;
+    width: 100%;
+    max-width: 175px;
+    height: auto;
+    object-fit: contain;
+    image-rendering: auto;
+}
+
+/* Logo hover effect */
+.vejrville-brand:hover .vejrville-logo {
+    transform: scale(1.04);
+    transition: transform 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .vejrville-brand:hover .vejrville-logo {
+        transform: none;
+        transition: none;
+    }
+}
+
+/* ===== Sidebar Footer ===== */
+
+.sidebar-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    box-sizing: border-box;
+
+    padding: 12px 16px;
+    text-align: center;
+
+    background: rgba(0, 0, 0, 0.12);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+    color: #b8d0ca;
+    font-size: 12px;
+}
+
+.sidebar-footer span,
+.sidebar-footer small {
+    display: block;
+}
+
+.sidebar-footer small {
+    margin-top: 4px;
+    font-size: 10px;
+    color: #b8d0ca;
+    opacity: 0.8;
 }
