@@ -1,4 +1,4 @@
-@page "/weather"
+﻿@page "/weather"
 @attribute [StreamRendering]
 @rendermode InteractiveServer
 @using System.Globalization
@@ -74,7 +74,7 @@
                                 <td>@day.TempMax.ToString("F1", daCulture) °C</td>
                                 <td>@day.TempMin.ToString("F1", daCulture) °C</td>
                                 <td>@day.WindSpeed.ToString("F1", daCulture)</td>
-                                <td>@GetWeatherDescription(day.WeatherCode)</td>
+                                <td>@day.Condition</td>
                             </tr>
                         }
                     </tbody>
@@ -376,29 +376,6 @@ else if (temperatures is not null && temperatures.Count > 0)
         {
             isLoading = false;
         }
-    }
-
-    private static string GetWeatherDescription(int code)
-    {
-        return code switch
-        {
-            0 => "Klart",
-            1 => "Overvejende klart",
-            2 => "Delvist skyet",
-            3 => "Overskyet",
-            45 or 48 => "Tåge",
-            51 or 53 or 55 => "Støvregn",
-            56 or 57 => "Frysende støvregn",
-            61 or 63 or 65 => "Regn",
-            66 or 67 => "Frysende regn",
-            71 or 73 or 75 => "Sne",
-            77 => "Snekorn",
-            80 or 81 or 82 => "Regnbyger",
-            85 or 86 => "Snebyger",
-            95 => "Tordenvejr",
-            96 or 99 => "Tordenvejr med hagl",
-            _ => "Ukendt"
-        };
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
