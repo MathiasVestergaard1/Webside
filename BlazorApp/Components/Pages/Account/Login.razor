@@ -1,0 +1,30 @@
+@page "/login"
+@* HTTP GET /login: Vis loginformularen. *@
+
+<PageTitle>Log ind</PageTitle>
+<h1>Log ind</h1>
+<AccountMessage Error="@Error" />
+@if (Registered == "true")
+{
+    <p class="alert alert-success" role="status">Brugeren er oprettet. Du kan nu logge ind.</p>
+}
+@* HTTP POST /account/login: Send brugernavn og password til serveren. *@
+<form method="post" action="/account/login" data-enhance="false" class="account-form">
+    <AntiforgeryToken />
+    <div class="mb-3">
+        <label for="username" class="form-label">Brugernavn</label>
+        <input id="username" name="username" class="form-control" autocomplete="username" maxlength="50" required />
+    </div>
+    <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <input id="password" name="password" type="password" class="form-control" autocomplete="current-password" maxlength="128" required />
+    </div>
+    <button class="btn btn-primary" type="submit">Log ind</button>
+</form>
+<p class="mt-3"><a href="/register">Opret en bruger</a></p>
+
+@code {
+    // Læs status fra adressen, fx /login?error=credentials.
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "registered")] public string? Registered { get; set; }
+}

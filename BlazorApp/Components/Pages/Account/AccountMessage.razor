@@ -1,0 +1,15 @@
+@if (Error is not null)
+{
+    <p class="alert alert-danger" role="alert">@Message</p>
+}
+
+@code {
+    [Parameter] public string? Error { get; set; }
+    private string Message => Error switch
+    {
+        "credentials" => "Forkert brugernavn eller password.",
+        "duplicate" => "Brugernavn eller e-mail er allerede i brug.",
+        "database" => "Der kunne ikke oprettes forbindelse til brugerdatabasen. Prøv igen senere.",
+        _ => "Kontrollér felterne. Ved oprettelse skal password være 12–128 tegn, og de to passwords skal være ens."
+    };
+}
