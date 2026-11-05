@@ -53,6 +53,35 @@
                 </small>
             </h3>
 
+            @if (currentTemperature.HasValue)
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <h4 class="h5">Aktuel temperatur</h4>
+
+            <div class="d-flex align-items-center gap-3">
+                <span style="font-size: 2.5rem; font-weight: bold;">
+                    @currentTemperature.Value.ToString("F1", daCulture) °C
+                </span>
+
+                @if (currentWeatherCode.HasValue)
+                {
+                    <span class="fs-5">
+                        @GetWeatherDescription(currentWeatherCode.Value)
+                    </span>
+                }
+            </div>
+
+            @if (!string.IsNullOrEmpty(currentWeatherTime))
+            {
+                <small class="text-muted">
+                    Seneste vejrdata: @currentWeatherTime
+                </small>
+            }
+        </div>
+    </div>
+}
+
             <div class="table-responsive">
                 <table class="table">
                     <thead>
@@ -187,6 +216,38 @@ else if (temperatures is not null && temperatures.Count > 0)
     private string? errorMessage;
     private GeocodingResult? location;
     private List<DayForecast>? forecasts;
+
+    // Current weather
+    private double? currentTemperature;
+    private int? currentWeatherCode;
+    private string? currentWeatherTime;
+
+    private static string GetWeatherDescription(int code)
+{
+    return code switch
+    {
+        0 => "Klart ☀️",
+        1 => "Overvejende klart 🌤️",
+        2 => "Delvist skyet ⛅",
+        3 => "Overskyet ☁️",
+        45 or 48 => "Tåge 🌫️",
+        51 or 53 or 55 => "Støvregn 🌦️",
+        56 or 57 => "Frysende støvregn 🧊",
+        61 => "Let regn 🌦️",
+        63 => "Regn 🌧️",
+        65 => "Kraftig regn 🌧️",
+        66 or 67 => "Frysende regn 🧊",
+        71 => "Let sne 🌨️",
+        73 => "Sne ❄️",
+        75 => "Kraftig sne ❄️",
+        77 => "Snekorn ❄️",
+        80 or 81 or 82 => "Regnbyger 🌦️",
+        85 or 86 => "Snebyger 🌨️",
+        95 => "Tordenvejr ⛈️",
+        96 or 99 => "Tordenvejr med hagl ⛈️",
+        _ => "Ukendt ❓"
+    };
+}
     private List<PostalCodeEntry> postalCodes = new();
 
     // Shared loading indicator.
@@ -263,6 +324,9 @@ else if (temperatures is not null && temperatures.Count > 0)
         errorMessage = null;
         location = null;
         forecasts = null;
+        currentTemperature = null;
+        currentWeatherCode = null;
+        currentWeatherTime = null;
 
         try
         {
@@ -322,6 +386,7 @@ else if (temperatures is not null && temperatures.Count > 0)
             var forecastUrl =
                 "https://api.open-meteo.com/v1/forecast" +
                 $"?latitude={lat}&longitude={lon}" +
+                "&current=temperature_2m,weather_code" +
                 "&daily=weather_code,temperature_2m_max,temperature_2m_min,temperature_2m_mean,wind_speed_10m_max" +
                 "&wind_speed_unit=ms&timezone=auto&forecast_days=5";
 
@@ -329,6 +394,18 @@ else if (temperatures is not null && temperatures.Count > 0)
                 await client.GetFromJsonAsync<ForecastResponse>(forecastUrl);
 
             var daily = forecast?.Daily;
+
+            if (forecast?.Current is not null) {
+                currentTemperature = forecast.Current.Temperature;
+                currentWeatherCode = forecast.Current.WeatherCode;
+                currentWeatherTime = forecast.Current.Time;
+            }
+            else
+            {
+                currentTemperature = null;
+                currentWeatherCode = null;
+                currentWeatherTime = null;
+            }
 
             if (daily is null ||
                 daily.Time.Count == 0 ||

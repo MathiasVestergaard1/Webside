@@ -30,8 +30,26 @@ public class GeocodingResult
 
 public class ForecastResponse
 {
+
+    [JsonPropertyName("current")]
+    public CurrentWeatherData? Current { get; set; }
+
     [JsonPropertyName("daily")]
     public DailyData? Daily { get; set; }
+}
+
+// ---------- Current Weather API ----------
+
+public class CurrentWeatherData
+{
+    [JsonPropertyName("time")]
+    public string Time { get; set; } = "";
+
+    [JsonPropertyName("temperature_2m")]
+    public double Temperature { get; set; }
+
+    [JsonPropertyName("weather_code")]
+    public int WeatherCode { get; set; }
 }
 
 public class DailyData
