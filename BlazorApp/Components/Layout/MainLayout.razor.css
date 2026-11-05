@@ -306,3 +306,18 @@ main {
     right: 0.75rem;
     top: 0.5rem;
 }
+
+/* ============ Login ==================*/
+.register-link {
+    color: #305b58;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    margin-left: 8px;
+}
+
+.register-link:hover {
+    color: #183c3a;
+    text-decoration: underline;
+}
