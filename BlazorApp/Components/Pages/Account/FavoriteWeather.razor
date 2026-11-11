@@ -1,0 +1,117 @@
+@using System.Globalization
+@using BlazorApp.Accounts
+@inject IHttpClientFactory HttpClients
+@implements IDisposable
+
+@if (loading)
+{
+    <p role="status">Henter vejrdata...</p>
+}
+else if (error is not null)
+{
+    <div class="alert alert-warning" role="alert">
+        @error
+        <button class="btn btn-outline-secondary btn-sm ms-2" @onclick="LoadAsync">Prøv igen</button>
+    </div>
+}
+else
+{
+    @if (current is not null)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <h4 class="h5">Aktuel temperatur</h4>
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <strong class="fs-1">@current.Temperature.ToString("F1", Danish) °C</strong>
+                    <span class="fs-5">@WeatherCodes.ToDanish(current.WeatherCode)</span>
+                </div>
+                <small class="text-muted">Seneste vejrdata: @FormatTime(current.Time) (lokal tid)</small>
+            </div>
+        </div>
+    }
+    <div class="table-responsive">
+        <table class="table">
+            <caption class="visually-hidden">Fem dages vejrudsigt for @Location.Name</caption>
+            <thead>
+                <tr><th scope="col">Dato</th><th scope="col">Gennemsnit</th><th scope="col">Max</th><th scope="col">Min</th><th scope="col">Vind (m/s)</th><th scope="col">Vejrforhold</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var day in days)
+                {
+                    <tr>
+                        <td>@day.Date.ToString("dddd d. MMM", Danish)</td>
+                        <td>@day.TempMean.ToString("F1", Danish) °C</td>
+                        <td>@day.TempMax.ToString("F1", Danish) °C</td>
+                        <td>@day.TempMin.ToString("F1", Danish) °C</td>
+                        <td>@day.WindSpeed.ToString("F1", Danish)</td>
+                        <td>@day.Condition</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public FavoriteLocation Location { get; set; } = default!;
+    private static readonly CultureInfo Danish = new("da-DK");
+    private readonly CancellationTokenSource cancellation = new();
+    private CurrentWeatherData? current;
+    private List<DayForecast> days = [];
+    private bool loading = true;
+    private string? error;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadAsync();
+            if (!cancellation.IsCancellationRequested) StateHasChanged();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        error = null;
+        try
+        {
+            var lat = Location.Latitude.ToString(CultureInfo.InvariantCulture);
+            var lon = Location.Longitude.ToString(CultureInfo.InvariantCulture);
+            var url = $"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
+                + "&current=temperature_2m,weather_code"
+                + "&daily=weather_code,temperature_2m_max,temperature_2m_min,temperature_2m_mean,wind_speed_10m_max"
+                + "&wind_speed_unit=ms&timezone=auto&forecast_days=5";
+            using var client = HttpClients.CreateClient();
+            var forecast = await client.GetFromJsonAsync<ForecastResponse>(url, cancellation.Token);
+            var daily = forecast?.Daily;
+            if (daily is null || daily.Time.Count == 0
+                || daily.TemperatureMean.Count < daily.Time.Count
+                || daily.TemperatureMax.Count < daily.Time.Count
+                || daily.TemperatureMin.Count < daily.Time.Count
+                || daily.WindSpeedMax.Count < daily.Time.Count
+                || daily.WeatherCode.Count < daily.Time.Count)
+                throw new System.Text.Json.JsonException("Incomplete forecast.");
+
+            days = Enumerable.Range(0, daily.Time.Count).Select(i => new DayForecast
+            {
+                Date = DateOnly.Parse(daily.Time[i], CultureInfo.InvariantCulture),
+                TempMean = daily.TemperatureMean[i], TempMax = daily.TemperatureMax[i],
+                TempMin = daily.TemperatureMin[i], WindSpeed = daily.WindSpeedMax[i],
+                WeatherCode = daily.WeatherCode[i]
+            }).ToList();
+            current = forecast!.Current;
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
+        catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException or FormatException or OperationCanceledException)
+        {
+            error = "Vejrdata kunne ikke hentes for dette sted. Prøv igen senere.";
+        }
+        finally { loading = false; }
+    }
+
+    private static string FormatTime(string value) => DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var time)
+        ? time.ToString("d. MMM yyyy 'kl.' HH:mm", Danish) : value;
+
+    public void Dispose() { cancellation.Cancel(); cancellation.Dispose(); }
+}

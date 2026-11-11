@@ -1,0 +1,4 @@
+ .account-bar { display: flex; align-items: center; justify-content: flex-end; gap: .65rem; flex-wrap: wrap; }
+.account-bar input { width: 155px; }
+.account-bar button, .account-bar a { white-space: nowrap; }
+@media (max-width: 640px) { .account-bar { justify-content: flex-start; } .account-bar input { width: 135px; } }

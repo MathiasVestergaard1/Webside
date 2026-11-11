@@ -95,3 +95,15 @@ distribueret begrænsning af loginforsøg er ikke implementeret.
 Blazor-kontoformularerne bruger almindelig HTTP POST, så login kan sætte en cookie
 før browseren indlæser den nye side:
 https://learn.microsoft.com/aspnet/core/blazor/security/server/?view=aspnetcore-10.0
+
+## Favoritter
+
+Favoritter bruger tabellerne `locations` og `favorites` sammen med `users`.
+På en eksisterende database køres `favorites-migration.sql` én gang med MySQL-klienten eller Workbench.
+Det opretter kun de manglende tabeller og sletter ingen data. Docker kører ikke nye init-scripts på en eksisterende volumen.
+På en ny database opretter `setup.sql` alle tre tabeller.
+
+Log ind i topbaren, søg på vejrsiden og vælg "Gem favorit". Åbn "Min side" for at åbne eller fjerne egne favoritter.
+Steder deles via unikke koordinater; vejrdata hentes fra Open-Meteo ved åbning.
+
+`favorites.created_at` records when a favorite is saved. On databases created before this column, run `favorites-created-at-migration.sql` once. Existing favorites retain NULL because their original save time is unknown; new favorites receive the current timestamp automatically. Saving a duplicate does not change the timestamp.

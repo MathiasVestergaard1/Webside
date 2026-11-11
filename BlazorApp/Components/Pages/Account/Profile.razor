@@ -1,19 +1,62 @@
 @page "/account"
+@rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Authorization
-@* HTTP GET /account: Vis indhold ud fra brugerens loginstatus. *@
-
-<PageTitle>Min konto</PageTitle>
-<h1>Min konto</h1>
+@using System.Security.Claims
+@using BlazorApp.Accounts
+@inject AuthenticationStateProvider Authentication
+@inject FavoriteRepository Favorites
+<PageTitle>Min side</PageTitle>
+<h1>Min side</h1>
+<AccountMessage Error="@Error" />
+@if (Registered == "true") { <p class="alert alert-success">Brugeren er oprettet. Log ind i toppen.</p> }
 <AuthorizeView>
     <Authorized Context="auth">
-        <p>Du er logget ind som <strong>@auth.User.Identity?.Name</strong>.</p>
-        @* HTTP POST /account/logout: Fjern login-cookien og log ud. *@
-        <form method="post" action="/account/logout" data-enhance="false">
-            <AntiforgeryToken />
-            <button type="submit" class="btn btn-secondary">Log ud</button>
-        </form>
+        <p>Velkommen, <strong>@auth.User.Identity?.Name</strong>.</p>
+        <h2>Mine favoritter</h2>
+        @if (message is not null) { <p class="alert alert-warning" role="alert">@message</p> }
+        @if (loading) { <p>Henter favoritter...</p> }
+        else if (locations.Count == 0 && message is null) { <p>Du har ingen favoritter endnu. <a href="/weather">Find et sted på vejrsiden</a>.</p> }
+        @foreach (var place in locations)
+        {
+            <section class="card mb-4" @key="place.Id" aria-label="@place.Name">
+                <div class="card-body">
+                    <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+                        <h3 class="h4">@place.Name <small class="text-muted">@string.Join(", ", new[] { place.Region, place.Country }.Where(s => !string.IsNullOrEmpty(s)))</small></h3>
+                        <button class="btn btn-outline-danger btn-sm" disabled="@busy" @onclick="() => RemoveAsync(place.Id)" aria-label="@($"Fjern {place.Name} fra favoritter")">Fjern</button>
+                    </div>
+                    <FavoriteWeather Location="place" />
+                </div>
+            </section>
+        }
     </Authorized>
-    <NotAuthorized>
-        <p>Du skal <a href="/login">logge ind</a> for at se din konto.</p>
-    </NotAuthorized>
+    <NotAuthorized><p>Log ind med brugernavn og password i toppen for at se dine favoritter.</p></NotAuthorized>
 </AuthorizeView>
+@code {
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "registered")] public string? Registered { get; set; }
+    private List<FavoriteLocation> locations = [];
+    private bool loading = true, busy;
+    private ulong userId;
+    private string? message;
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var auth = await Authentication.GetAuthenticationStateAsync();
+            if (auth.User.Identity?.IsAuthenticated == true && ulong.TryParse(auth.User.FindFirstValue(ClaimTypes.NameIdentifier), out userId))
+                locations = await Favorites.ListAsync(userId);
+        }
+        catch (Exception ex) when (ex is MySqlConnector.MySqlException or InvalidOperationException)
+        { message = "Favoritter kunne ikke hentes. Prøv igen senere."; }
+        finally { loading = false; }
+    }
+    private async Task RemoveAsync(ulong id)
+    {
+        busy = true;
+        message = null;
+        try { await Favorites.RemoveAsync(userId, id); locations.RemoveAll(p => p.Id == id); }
+        catch (Exception ex) when (ex is MySqlConnector.MySqlException or InvalidOperationException)
+        { message = "Favoritten kunne ikke fjernes. Prøv igen senere."; }
+        finally { busy = false; }
+    }
+}

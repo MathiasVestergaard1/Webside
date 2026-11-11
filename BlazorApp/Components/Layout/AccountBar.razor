@@ -1,0 +1,23 @@
+@using Microsoft.AspNetCore.Components.Authorization
+<AuthorizeView>
+    <Authorized Context="auth">
+        <div class="account-bar">
+            <a href="/account">@auth.User.Identity?.Name · Min side</a>
+            <form method="post" action="/account/logout" data-enhance="false">
+                <AntiforgeryToken />
+                <button class="btn btn-outline-secondary btn-sm" type="submit">Log ud</button>
+            </form>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="account-bar">
+            <form method="post" action="/account/login" data-enhance="false" class="account-bar">
+                <AntiforgeryToken />
+                <input name="username" aria-label="Brugernavn" placeholder="Brugernavn" class="form-control form-control-sm" autocomplete="username" maxlength="50" required />
+                <input name="password" aria-label="Password" placeholder="Password" type="password" class="form-control form-control-sm" autocomplete="current-password" maxlength="128" required />
+                <button class="btn btn-primary btn-sm" type="submit">Log ind</button>
+            </form>
+            <a href="/register">Opret bruger</a>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
