@@ -1,3 +1,4 @@
+
 using System.Text.Json.Serialization;
 
 // ---------- Geocoding API ----------
@@ -30,9 +31,28 @@ public class GeocodingResult
 
 public class ForecastResponse
 {
+    [JsonPropertyName("current")]
+    public CurrentWeatherData? Current { get; set; }
+
     [JsonPropertyName("daily")]
     public DailyData? Daily { get; set; }
 }
+
+// ---------- Current Weather API ----------
+
+public class CurrentWeatherData
+{
+    [JsonPropertyName("time")]
+    public string Time { get; set; } = "";
+
+    [JsonPropertyName("temperature_2m")]
+    public double Temperature { get; set; }
+
+    [JsonPropertyName("weather_code")]
+    public int WeatherCode { get; set; }
+}
+
+// ---------- Daily Forecast Data ----------
 
 public class DailyData
 {
@@ -55,11 +75,12 @@ public class DailyData
     public List<double> WindSpeedMax { get; set; } = new();
 }
 
-// ---------- View model used by the page ----------
+// ---------- View Model ----------
 
 public class DayForecast
 {
     public DateOnly Date { get; set; }
+
     public double TempMean { get; set; }
     public double TempMax { get; set; }
     public double TempMin { get; set; }
@@ -69,30 +90,43 @@ public class DayForecast
     public string Condition => WeatherCodes.ToDanish(WeatherCode);
 }
 
+// ---------- WMO Weather Codes ----------
+
 public static class WeatherCodes
 {
-    // WMO weather interpretation codes -> Danish text
     public static string ToDanish(int code) => code switch
     {
-        0 => "Klar himmel",
-        1 => "Overvejende klart",
-        2 => "Delvist skyet",
-        3 => "Overskyet",
-        45 or 48 => "Tåge",
-        51 or 53 or 55 => "Støvregn",
-        56 or 57 => "Isslag (støvregn)",
-        61 => "Let regn",
-        63 => "Regn",
-        65 => "Kraftig regn",
-        66 or 67 => "Isslag (regn)",
-        71 => "Let snefald",
-        73 => "Snefald",
-        75 => "Kraftigt snefald",
-        77 => "Snekorn",
-        80 or 81 or 82 => "Regnbyger",
-        85 or 86 => "Snebyger",
-        95 => "Tordenvejr",
-        96 or 99 => "Tordenvejr med hagl",
-        _ => "Ukendt"
+        0 => "Klar himmel ☀️",
+        1 => "Overvejende klart 🌤️",
+        2 => "Delvist skyet ⛅",
+        3 => "Overskyet ☁️",
+        45 or 48 => "Tåge 🌫️",
+        51 or 53 or 55 => "Støvregn 🌦️",
+        56 or 57 => "Isslag (støvregn) 🧊",
+        61 => "Let regn 🌦️",
+        63 => "Regn 🌧️",
+        65 => "Kraftig regn 🌧️",
+        66 or 67 => "Isslag (regn) 🧊",
+        71 => "Let snefald 🌨️",
+        73 => "Snefald ❄️",
+        75 => "Kraftigt snefald ❄️",
+        77 => "Snekorn ❄️",
+        80 or 81 or 82 => "Regnbyger 🌦️",
+        85 or 86 => "Snebyger 🌨️",
+        95 => "Tordenvejr ⛈️",
+        96 or 99 => "Tordenvejr med hagl ⛈️",
+        _ => "Ukendt ❓"
     };
+}
+
+// ---------- Postal Code Lookup ----------
+
+public class PostalCodeEntry
+{
+    public string PostalCode { get; set; } = "";
+    public string Name { get; set; } = "";
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+    public string? Region { get; set; }
+    public string? Country { get; set; }
 }

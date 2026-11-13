@@ -53,6 +53,7 @@ main {
 
     min-height: 76px;
     padding: 14px 24px;
+    box-sizing: border-box;
 
     background: rgba(255, 255, 255, 0.88);
     border-bottom: 1px solid #dce8e3;
@@ -91,11 +92,9 @@ main {
 .header-search input {
     flex: 1;
     min-width: 0;
-
     background: transparent;
     border: none;
     outline: none;
-
     color: #263f47;
     font-size: 14px;
 }
@@ -104,31 +103,17 @@ main {
     color: #80958f;
 }
 
+.header-search:focus-within {
+    border-color: #89b8ae;
+    box-shadow: 0 0 0 3px rgba(137, 184, 174, 0.16);
+}
 
-/* ===== Nordic Neo-Retro Buttons ===== */
+/* ===== Search Button ===== */
 
-.search-btn,
-.login-btn {
+.search-btn {
     height: 42px;
     padding: 0 20px;
 
-    border: 1px solid;
-    border-radius: 2px;
-
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 700;
-    white-space: nowrap;
-
-    cursor: pointer;
-
-    transition:
-        transform 0.15s ease,
-        box-shadow 0.15s ease;
-}
-
-/* Mint Search Button */
-.search-btn {
     background: linear-gradient(
         180deg,
         #b8ded4 0%,
@@ -136,77 +121,57 @@ main {
     );
 
     color: #214d46;
-    border-color: #477d76;
+    border: 1px solid #477d76;
+    border-radius: 2px;
     box-shadow: 0 3px 0 #477d76;
+
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+
+    cursor: pointer;
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
 }
 
-/* Warm Yellow Login Button */
-.login-btn {
-    background: linear-gradient(
-        180deg,
-        #ffe4a6 0%,
-        #f0b956 100%
-    );
-
-    color: #594221;
-    border-color: #ba8f42;
-    box-shadow: 0 3px 0 #ba8f42;
-}
-
-/* Hover */
-.search-btn:not(:disabled):hover,
-.login-btn:not(:disabled):hover {
+.search-btn:not(:disabled):hover {
     transform: translateY(-1px);
 }
 
-/* Click */
-.search-btn:not(:disabled):active,
-.login-btn:not(:disabled):active {
+.search-btn:not(:disabled):active {
     transform: translateY(2px);
     box-shadow: none;
 }
 
-/* Disabled - keep colors visible */
-.search-btn:disabled,
-.login-btn:disabled {
+.search-btn:disabled {
     opacity: 1;
     cursor: not-allowed;
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .search-btn,
-    .login-btn {
-        transition: none;
-    }
-}
+/* ===== Account Bar ===== */
 
-/* ===== Login ===== */
+/* AccountBar is a child component.
+   ::deep allows styling elements inside it. */
 
-.header-login {
+.top-row ::deep .account-bar {
     display: flex;
     align-items: center;
     justify-content: flex-end;
+    flex-wrap: wrap;
     gap: 10px;
-}
-
-.header-login input {
     min-width: 0;
-    width: 125px;
-    padding: 10px 12px;
-
-    background: #ffffff;
-    border: 1px solid #d5e2dc;
-    border-radius: 2px;
-
-    color: #263f47;
-    font-size: 13px;
 }
 
-.header-login input:focus,
-.header-search:focus-within {
-    border-color: #89b8ae;
-    box-shadow: 0 0 0 3px rgba(137, 184, 174, 0.16);
-    outline: none;
+.top-row ::deep .account-bar a {
+    margin-left: 0;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.top-row ::deep .account-bar a:hover {
+    text-decoration: underline;
 }
 
 /* ===== Desktop Layout ===== */
@@ -222,7 +187,6 @@ main {
     .sidebar {
         flex: 0 0 250px;
         height: 100vh;
-        position: relative;
     }
 
     main {
@@ -244,10 +208,6 @@ main {
         gap: 12px;
     }
 
-    .header-login input {
-        width: 100px;
-    }
-
     .content {
         padding: 16px;
     }
@@ -267,20 +227,24 @@ main {
     .header-search {
         max-width: none;
         width: 100%;
+        box-sizing: border-box;
     }
 
-    .header-login {
+    .top-row ::deep .account-bar {
         width: 100%;
-        justify-content: stretch;
-    }
-
-    .header-login input {
-        flex: 1;
-        width: 0;
+        justify-content: flex-start;
     }
 
     .content {
         padding: 12px;
+    }
+}
+
+/* ===== Reduced Motion ===== */
+
+@media (prefers-reduced-motion: reduce) {
+    .search-btn {
+        transition: none;
     }
 }
 
@@ -305,19 +269,4 @@ main {
     position: absolute;
     right: 0.75rem;
     top: 0.5rem;
-}
-
-/* ============ Login ==================*/
-.register-link {
-    color: #305b58;
-    font-size: 13px;
-    font-weight: 600;
-    text-decoration: none;
-    white-space: nowrap;
-    margin-left: 8px;
-}
-
-.register-link:hover {
-    color: #183c3a;
-    text-decoration: underline;
 }

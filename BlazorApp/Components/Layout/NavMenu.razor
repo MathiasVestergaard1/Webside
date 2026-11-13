@@ -1,6 +1,11 @@
-﻿<div class="top-row navbar navbar-dark">
+
+@using Microsoft.AspNetCore.Components.Authorization
+
+<div class="top-row navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand vejrville-brand" href="/" aria-label="VejrVille Home">
+        <a class="navbar-brand vejrville-brand"
+           href="/"
+           aria-label="VejrVille Home">
             <img src="/images/vejrville-logo.png"
                  alt="VejrVille"
                  class="vejrville-logo" />
@@ -8,33 +13,60 @@
     </div>
 </div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+<input type="checkbox"
+       title="Navigation menu"
+       class="navbar-toggler" />
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+<div class="nav-scrollable"
+     onclick="document.querySelector('.navbar-toggler').click()">
+
     <nav class="nav flex-column">
+
+        <!-- Home -->
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+            <NavLink class="nav-link"
+                     href=""
+                     Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu"
+                      aria-hidden="true"></span>
+                Home
             </NavLink>
         </div>
 
+        <!-- Counter -->
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
+                <span class="bi bi-plus-square-fill-nav-menu"
+                      aria-hidden="true"></span>
+                Counter
             </NavLink>
         </div>
 
+        <!-- Weather -->
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
+                <span class="bi bi-list-nested-nav-menu"
+                      aria-hidden="true"></span>
+                Weather
             </NavLink>
         </div>
-    </nav>
 
+        <!-- Account: visible only when logged in -->
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="account">
+                        Min side
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+    </nav>
 </div>
 
+<!-- Sidebar Footer -->
 <div class="sidebar-footer">
     <span>© @DateTime.Now.Year VejrVille</span>
     <small>DTU Student Project</small>
 </div>
-
