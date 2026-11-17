@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.RateLimiting;
 using BlazorApp.Components.API;
 
 var builder = WebApplication.CreateBuilder(args);
+// Enable only for the HTTP demo server; HTTPS remains the default.
+var allowHttp = builder.Configuration.GetValue<bool>("Security:AllowHttp");
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -25,7 +27,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     options.Cookie.Name = "BlazorApp.Auth";
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() || allowHttp
         ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
     // Login udløber senest efter en time. Cookien gælder kun browsersessionen.
     // Ved længere login: ændr fristen her og sæt IsPersistent = true i AccountEndpoints.cs.
@@ -57,10 +59,10 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+    if (!allowHttp) app.UseHsts();
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
+if (!allowHttp) app.UseHttpsRedirection();
 
 // Læs login-cookien og afgør, hvem brugeren er, og hvad brugeren har adgang til.
 app.UseAuthentication();

@@ -5,11 +5,11 @@
 @inject AuthenticationStateProvider Authentication
 <AuthorizeView>
     <Authorized>
-        <button class="btn @(saved ? "btn-primary" : "btn-outline-primary") mb-3" disabled="@(busy || statusFailed)" aria-pressed="@(saved ? "true" : "false")" @onclick="ToggleAsync">@(busy ? "Vent..." : saved ? "★ Fjern favorit" : "☆ Gem favorit")</button>
+        <button class="btn @(saved ? "btn-primary" : "btn-outline-primary") mb-3" disabled="@(busy || statusFailed)" aria-pressed="@(saved ? "true" : "false")" @onclick="ToggleAsync">@(busy ? "Please wait..." : saved ? "★ Remove favorite" : "☆ Save favorite")</button>
         @if (message is not null) { <p role="alert" class="text-danger">@message</p> }
-        @if (statusFailed) { <button class="btn btn-outline-secondary btn-sm mb-3" @onclick="CheckStatusAsync">Prøv igen</button> }
+        @if (statusFailed) { <button class="btn btn-outline-secondary btn-sm mb-3" @onclick="CheckStatusAsync">Try again</button> }
     </Authorized>
-    <NotAuthorized><p>Log ind i toppen for at gemme favoritter.</p></NotAuthorized>
+    <NotAuthorized><p>Log in at the top of the page to save favorites.</p></NotAuthorized>
 </AuthorizeView>
 @code {
     [Parameter, EditorRequired] public GeocodingResult Location { get; set; } = default!;
@@ -41,7 +41,7 @@
         catch (Exception ex) when (ex is MySqlConnector.MySqlException or InvalidOperationException)
         {
             statusFailed = true;
-            message = "Favoritstatus kunne ikke hentes. Prøv igen.";
+            message = "Could not load favorite status. Please try again.";
         }
         finally { busy = false; }
     }
@@ -61,7 +61,7 @@
             saved = !saved;
         }
         catch (Exception ex) when (ex is MySqlConnector.MySqlException or InvalidOperationException or ArgumentException)
-        { message = "Favoritten kunne ikke opdateres. Prøv igen senere."; }
+        { message = "Could not update the favorite. Please try again later."; }
         finally { busy = false; }
     }
 }

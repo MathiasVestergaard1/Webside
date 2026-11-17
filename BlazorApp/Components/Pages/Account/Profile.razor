@@ -5,31 +5,31 @@
 @using BlazorApp.Accounts
 @inject AuthenticationStateProvider Authentication
 @inject FavoriteRepository Favorites
-<PageTitle>Min side</PageTitle>
-<h1>Min side</h1>
+<PageTitle>My account</PageTitle>
+<h1>My account</h1>
 <AccountMessage Error="@Error" />
-@if (Registered == "true") { <p class="alert alert-success">Brugeren er oprettet. Log ind i toppen.</p> }
+@if (Registered == "true") { <p class="alert alert-success">Your account has been created. Log in at the top of the page.</p> }
 <AuthorizeView>
     <Authorized Context="auth">
-        <p>Velkommen, <strong>@auth.User.Identity?.Name</strong>.</p>
-        <h2>Mine favoritter</h2>
+        <p>Welcome, <strong>@auth.User.Identity?.Name</strong>.</p>
+        <h2>My favorites</h2>
         @if (message is not null) { <p class="alert alert-warning" role="alert">@message</p> }
-        @if (loading) { <p>Henter favoritter...</p> }
-        else if (locations.Count == 0 && message is null) { <p>Du har ingen favoritter endnu. <a href="/weather">Find et sted på vejrsiden</a>.</p> }
+        @if (loading) { <p>Loading favorites...</p> }
+        else if (locations.Count == 0 && message is null) { <p>You have no favorites yet. <a href="/weather">Find a location on the weather page</a>.</p> }
         @foreach (var place in locations)
         {
             <section class="card mb-4" @key="place.Id" aria-label="@place.Name">
                 <div class="card-body">
                     <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
                         <h3 class="h4">@place.Name <small class="text-muted">@string.Join(", ", new[] { place.Region, place.Country }.Where(s => !string.IsNullOrEmpty(s)))</small></h3>
-                        <button class="btn btn-outline-danger btn-sm" disabled="@busy" @onclick="() => RemoveAsync(place.Id)" aria-label="@($"Fjern {place.Name} fra favoritter")">Fjern</button>
+                        <button class="btn btn-outline-danger btn-sm" disabled="@busy" @onclick="() => RemoveAsync(place.Id)" aria-label="@($"Remove {place.Name} from favorites")">Remove</button>
                     </div>
                     <FavoriteWeather Location="place" />
                 </div>
             </section>
         }
     </Authorized>
-    <NotAuthorized><p>Log ind med brugernavn og password i toppen for at se dine favoritter.</p></NotAuthorized>
+    <NotAuthorized><p>Log in at the top of the page to see your favorites.</p></NotAuthorized>
 </AuthorizeView>
 @code {
     [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
@@ -47,7 +47,7 @@
                 locations = await Favorites.ListAsync(userId);
         }
         catch (Exception ex) when (ex is MySqlConnector.MySqlException or InvalidOperationException)
-        { message = "Favoritter kunne ikke hentes. Prøv igen senere."; }
+        { message = "Could not load favorites. Please try again later."; }
         finally { loading = false; }
     }
     private async Task RemoveAsync(ulong id)
@@ -56,7 +56,7 @@
         message = null;
         try { await Favorites.RemoveAsync(userId, id); locations.RemoveAll(p => p.Id == id); }
         catch (Exception ex) when (ex is MySqlConnector.MySqlException or InvalidOperationException)
-        { message = "Favoritten kunne ikke fjernes. Prøv igen senere."; }
+        { message = "Could not remove the favorite. Please try again later."; }
         finally { busy = false; }
     }
 }

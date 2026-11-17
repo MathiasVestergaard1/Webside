@@ -1,14 +1,14 @@
 @page "/register"
 @* HTTP GET /register: Vis formularen til oprettelse. *@
 
-<PageTitle>Opret bruger</PageTitle>
-<h1>Opret bruger</h1>
+<PageTitle>Create account</PageTitle>
+<h1>Create account</h1>
 <AccountMessage Error="@Error" />
 @* HTTP POST /account/register: Send oplysningerne om den nye bruger. *@
 <form method="post" action="/account/register" data-enhance="false" class="account-form">
     <AntiforgeryToken />
     <div class="mb-3">
-        <label for="username" class="form-label">Brugernavn</label>
+        <label for="username" class="form-label">Username</label>
         <input id="username" name="username" class="form-control" autocomplete="username" maxlength="50" required />
     </div>
     <div class="mb-3">
@@ -16,16 +16,16 @@
         <input id="email" name="email" type="email" class="form-control" autocomplete="email" maxlength="254" required />
     </div>
     <div class="mb-3">
-        <label for="password" class="form-label">Password (12–128 tegn)</label>
+        <label for="password" class="form-label">Password (12–128 characters)</label>
         <input id="password" name="password" type="password" class="form-control" autocomplete="new-password" minlength="12" maxlength="128" required />
     </div>
     <div class="mb-3">
-        <label for="confirmPassword" class="form-label">Gentag password</label>
+        <label for="confirmPassword" class="form-label">Confirm password</label>
         <input id="confirmPassword" name="confirmPassword" type="password" class="form-control" autocomplete="new-password" minlength="12" maxlength="128" required />
     </div>
-    <button class="btn btn-primary" type="submit">Opret bruger</button>
+    <button class="btn btn-primary" type="submit">Create account</button>
 </form>
-<p class="mt-3">Har du allerede en bruger? Log ind i toppen.</p>
+<p class="mt-3">Already have an account? Log in at the top of the page.</p>
 
 @code {
     [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }

@@ -5,13 +5,13 @@
 
 @if (loading)
 {
-    <p role="status">Henter vejrdata...</p>
+    <p role="status">Loading weather data...</p>
 }
 else if (error is not null)
 {
     <div class="alert alert-warning" role="alert">
         @error
-        <button class="btn btn-outline-secondary btn-sm ms-2" @onclick="LoadAsync">Prøv igen</button>
+        <button class="btn btn-outline-secondary btn-sm ms-2" @onclick="LoadAsync">Try again</button>
     </div>
 }
 else
@@ -20,30 +20,30 @@ else
     {
         <div class="card mb-3">
             <div class="card-body">
-                <h4 class="h5">Aktuel temperatur</h4>
+                <h4 class="h5">Current temperature</h4>
                 <div class="d-flex align-items-center gap-3 flex-wrap">
-                    <strong class="fs-1">@current.Temperature.ToString("F1", Danish) °C</strong>
-                    <span class="fs-5">@WeatherCodes.ToDanish(current.WeatherCode)</span>
+                    <strong class="fs-1">@current.Temperature.ToString("F1", English) °C</strong>
+                    <span class="fs-5">@WeatherCodes.ToEnglish(current.WeatherCode)</span>
                 </div>
-                <small class="text-muted">Seneste vejrdata: @FormatTime(current.Time) (lokal tid)</small>
+                <small class="text-muted">Latest weather data: @FormatTime(current.Time) (local time)</small>
             </div>
         </div>
     }
     <div class="table-responsive">
         <table class="table">
-            <caption class="visually-hidden">Fem dages vejrudsigt for @Location.Name</caption>
+            <caption class="visually-hidden">Five-day forecast for @Location.Name</caption>
             <thead>
-                <tr><th scope="col">Dato</th><th scope="col">Gennemsnit</th><th scope="col">Max</th><th scope="col">Min</th><th scope="col">Vind (m/s)</th><th scope="col">Vejrforhold</th></tr>
+                <tr><th scope="col">Date</th><th scope="col">Average</th><th scope="col">Max</th><th scope="col">Min</th><th scope="col">Wind (m/s)</th><th scope="col">Conditions</th></tr>
             </thead>
             <tbody>
                 @foreach (var day in days)
                 {
                     <tr>
-                        <td>@day.Date.ToString("dddd d. MMM", Danish)</td>
-                        <td>@day.TempMean.ToString("F1", Danish) °C</td>
-                        <td>@day.TempMax.ToString("F1", Danish) °C</td>
-                        <td>@day.TempMin.ToString("F1", Danish) °C</td>
-                        <td>@day.WindSpeed.ToString("F1", Danish)</td>
+                        <td>@day.Date.ToString("dddd d. MMM", English)</td>
+                        <td>@day.TempMean.ToString("F1", English) °C</td>
+                        <td>@day.TempMax.ToString("F1", English) °C</td>
+                        <td>@day.TempMin.ToString("F1", English) °C</td>
+                        <td>@day.WindSpeed.ToString("F1", English)</td>
                         <td>@day.Condition</td>
                     </tr>
                 }
@@ -54,7 +54,7 @@ else
 
 @code {
     [Parameter, EditorRequired] public FavoriteLocation Location { get; set; } = default!;
-    private static readonly CultureInfo Danish = new("da-DK");
+    private static readonly CultureInfo English = new("en-GB");
     private readonly CancellationTokenSource cancellation = new();
     private CurrentWeatherData? current;
     private List<DayForecast> days = [];
@@ -105,13 +105,13 @@ else
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException or FormatException or OperationCanceledException)
         {
-            error = "Vejrdata kunne ikke hentes for dette sted. Prøv igen senere.";
+            error = "Could not load weather for this location. Please try again later.";
         }
         finally { loading = false; }
     }
 
     private static string FormatTime(string value) => DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var time)
-        ? time.ToString("d. MMM yyyy 'kl.' HH:mm", Danish) : value;
+        ? time.ToString("d MMM yyyy HH:mm", English) : value;
 
     public void Dispose() { cancellation.Cancel(); cancellation.Dispose(); }
 }

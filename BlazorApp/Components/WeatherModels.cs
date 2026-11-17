@@ -84,34 +84,34 @@ public class DayForecast
     public double WindSpeed { get; set; }
     public int WeatherCode { get; set; }
 
-    public string Condition => WeatherCodes.ToDanish(WeatherCode);
+    public string Condition => WeatherCodes.ToEnglish(WeatherCode);
 }
 
 public static class WeatherCodes
 {
-    //Fra vejrkoder til dansk (Nu med emojis)
-    public static string ToDanish(int code) => code switch
+    // Translate weather codes into English descriptions with emojis.
+    public static string ToEnglish(int code) => code switch
     {
-        0 => "Klar himmel ☀️",
-        1 => "Overvejende klart 🌤️",
-        2 => "Delvist skyet ⛅",
-        3 => "Overskyet ☁️",
-        45 or 48 => "Tåge 🌫️",
-        51 or 53 or 55 => "Støvregn 🌦️",
-        56 or 57 => "Isslag (støvregn) 🧊",
-        61 => "Let regn 🌦️",
-        63 => "Regn 🌧️",
-        65 => "Kraftig regn 🌧️",
-        66 or 67 => "Isslag (regn) 🧊",
-        71 => "Let snefald 🌨️",
-        73 => "Snefald ❄️",
-        75 => "Kraftigt snefald ❄️",
-        77 => "Snekorn ❄️",
-        80 or 81 or 82 => "Regnbyger 🌦️",
-        85 or 86 => "Snebyger 🌨️",
-        95 => "Tordenvejr ⛈️",
-        96 or 99 => "Tordenvejr med hagl ⛈️",
-        _ => "Ukendt ❓"
+        0 => "Clear sky ☀️",
+        1 => "Mainly clear 🌤️",
+        2 => "Partly cloudy ⛅",
+        3 => "Overcast ☁️",
+        45 or 48 => "Fog 🌫️",
+        51 or 53 or 55 => "Drizzle 🌦️",
+        56 or 57 => "Freezing drizzle 🧊",
+        61 => "Light rain 🌦️",
+        63 => "Rain 🌧️",
+        65 => "Heavy rain 🌧️",
+        66 or 67 => "Freezing rain 🧊",
+        71 => "Light snowfall 🌨️",
+        73 => "Snowfall ❄️",
+        75 => "Heavy snowfall ❄️",
+        77 => "Snow grains ❄️",
+        80 or 81 or 82 => "Rain showers 🌦️",
+        85 or 86 => "Snow showers 🌨️",
+        95 => "Thunderstorm ⛈️",
+        96 or 99 => "Thunderstorm with hail ⛈️",
+        _ => "Unknown ❓"
     };
 }
 

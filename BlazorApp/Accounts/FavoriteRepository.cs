@@ -40,7 +40,7 @@ public sealed class FavoriteRepository(IConfiguration configuration)
     {
         if (string.IsNullOrWhiteSpace(name) || name.Length > 200 || country?.Length > 200 || region?.Length > 200
             || !double.IsFinite(latitude) || !double.IsFinite(longitude) || latitude is < -90 or > 90 || longitude is < -180 or > 180)
-            throw new ArgumentException("Ugyldigt sted.");
+            throw new ArgumentException("Invalid location.");
         await using var connection = Connection();
         await connection.OpenAsync();
         await using var transaction = await connection.BeginTransactionAsync();

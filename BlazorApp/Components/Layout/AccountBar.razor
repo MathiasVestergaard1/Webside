@@ -2,10 +2,10 @@
 <AuthorizeView>
     <Authorized Context="auth">
         <div class="account-bar">
-            <a href="/account">@auth.User.Identity?.Name · Min side</a>
+            <a href="/account">@auth.User.Identity?.Name · My account</a>
             <form method="post" action="/account/logout" data-enhance="false">
                 <AntiforgeryToken />
-                <button class="btn btn-outline-secondary btn-sm" type="submit">Log ud</button>
+                <button class="btn btn-outline-secondary btn-sm" type="submit">Log out</button>
             </form>
         </div>
     </Authorized>
@@ -13,11 +13,11 @@
         <div class="account-bar">
             <form method="post" action="/account/login" data-enhance="false" class="account-bar">
                 <AntiforgeryToken />
-                <input name="username" aria-label="Brugernavn" placeholder="Brugernavn" class="form-control form-control-sm" autocomplete="username" maxlength="50" required />
+                <input name="username" aria-label="Username" placeholder="Username" class="form-control form-control-sm" autocomplete="username" maxlength="50" required />
                 <input name="password" aria-label="Password" placeholder="Password" type="password" class="form-control form-control-sm" autocomplete="current-password" maxlength="128" required />
-                <button class="btn btn-primary btn-sm" type="submit">Log ind</button>
+                <button class="btn btn-primary btn-sm" type="submit">Log in</button>
             </form>
-            <a href="/register">Opret bruger</a>
+            <a href="/register">Create account</a>
         </div>
     </NotAuthorized>
 </AuthorizeView>

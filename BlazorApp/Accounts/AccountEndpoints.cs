@@ -25,11 +25,11 @@ public static class AccountEndpoints
         if (action is not ("login" or "register" or "logout")) return Results.NotFound();
         // Kontrollér formularens sikkerhedstoken (CSRF-beskyttelse).
         try { await antiforgery.ValidateRequestAsync(context); }
-        catch (AntiforgeryValidationException) { return Results.BadRequest("Ugyldig formular. Genindlæs siden og prøv igen."); }
+        catch (AntiforgeryValidationException) { return Results.BadRequest("Invalid form. Reload the page and try again."); }
 
         if (action == "logout")
         {
-            // Log ud ved at fjerne login-cookien fra browseren.
+            // Remove the login cookie from the browser.
             await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             return Results.LocalRedirect("/");
         }
@@ -73,7 +73,7 @@ public static class AccountEndpoints
             catch (FormatException) { verified = PasswordVerificationResult.Failed; }
             if (verified == PasswordVerificationResult.Failed) return Error("credentials");
 
-            // Opret brugerens identitet med id og navn.
+            // Create the user's identity with their ID and username.
             var identity = new ClaimsIdentity(new[] {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString(System.Globalization.CultureInfo.InvariantCulture)),
                 new Claim(ClaimTypes.Name, user.Username)

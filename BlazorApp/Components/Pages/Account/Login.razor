@@ -1,8 +1,8 @@
 @page "/login"
-<PageTitle>Log ind</PageTitle>
-<h1>Log ind</h1>
+<PageTitle>Log in</PageTitle>
+<h1>Log in</h1>
 <AccountMessage Error="@Error" />
-<p>Log ind med felterne i toppen. <a href="/register">Opret bruger</a>, hvis du ikke har en konto.</p>
+<p>Log in using the fields at the top of the page. <a href="/register">Create account</a>, if you do not have an account.</p>
 @code {
     [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
 }
