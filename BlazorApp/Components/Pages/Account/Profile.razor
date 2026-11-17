@@ -6,31 +6,171 @@
 @inject AuthenticationStateProvider Authentication
 @inject FavoriteRepository Favorites
 <PageTitle>Min side</PageTitle>
-<h1>Min side</h1>
+
+
+<div class="profile-header">
+    <div>
+        <span class="profile-subtitle">MY WEATHER DASHBOARD</span>
+        <h1>Min side</h1>
+
+        <AuthorizeView>
+            <Authorized Context="headerAuth">
+                <p>
+                    Welcome back, <strong>@headerAuth.User.Identity?.Name</strong>! 👋
+                </p>
+                <p>Manage your favorite cities and explore the weather.</p>
+            </Authorized>
+
+            <NotAuthorized>
+                <p>Sign in to manage your favorite cities.</p>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+
+    <span class="profile-weather-icon" aria-hidden="true">🌤️</span>
+</div>
+
+
 <AccountMessage Error="@Error" />
+
 @if (Registered == "true") { <p class="alert alert-success">Brugeren er oprettet. Log ind i toppen.</p> }
+
 <AuthorizeView>
     <Authorized Context="auth">
-        <p>Velkommen, <strong>@auth.User.Identity?.Name</strong>.</p>
-        <h2>Mine favoritter</h2>
-        @if (message is not null) { <p class="alert alert-warning" role="alert">@message</p> }
-        @if (loading) { <p>Henter favoritter...</p> }
-        else if (locations.Count == 0 && message is null) { <p>Du har ingen favoritter endnu. <a href="/weather">Find et sted på vejrsiden</a>.</p> }
-        @foreach (var place in locations)
+
+        @if (message is not null)
         {
-            <section class="card mb-4" @key="place.Id" aria-label="@place.Name">
-                <div class="card-body">
-                    <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
-                        <h3 class="h4">@place.Name <small class="text-muted">@string.Join(", ", new[] { place.Region, place.Country }.Where(s => !string.IsNullOrEmpty(s)))</small></h3>
-                        <button class="btn btn-outline-danger btn-sm" disabled="@busy" @onclick="() => RemoveAsync(place.Id)" aria-label="@($"Fjern {place.Name} fra favoritter")">Fjern</button>
-                    </div>
-                    <FavoriteWeather Location="place" />
-                </div>
-            </section>
+            <p class="alert alert-warning" role="alert">@message</p>
         }
+
+        @if (loading)
+        {
+            <p role="status">Loading favorites...</p>
+        }
+        else if (locations.Count == 0 && message is null)
+        {
+            <div class="favorites-empty">
+                <h3>No favorite cities yet ⭐</h3>
+                <p>Search for a city and add it to your favorites.</p>
+                <a href="/weather" class="find-city-link">
+                    Explore Weather
+                </a>
+            </div>
+        }
+
+        else if (SelectedCity is not null)
+        {
+            <div class="dashboard-grid">
+
+                <!-- LEFT PANE: Selected City -->
+                <div class="dashboard-left">
+
+                    <section class="featured-weather">
+
+                        <div class="featured-scene @GetCityTheme(SelectedCity.Name)">
+                            <div class="featured-scene-content">
+                                <span>📍 SELECTED CITY</span>
+                                <h2>@SelectedCity.Name</h2>
+                                <p>@SelectedCity.Region, @SelectedCity.Country</p>
+                            </div>
+                        </div>
+
+                        <div class="featured-details">
+                            <FavoriteWeather @key="SelectedCity.Id"
+                                            Location="SelectedCity" />
+                        </div>
+
+                    </section>
+                </div>
+
+                <!-- RIGHT PANE: Favorites Table -->
+                <div class="dashboard-right">
+
+                    <section class="favorites-section">
+
+                        <div class="favorites-heading">
+                            <h2>⭐ My Favorite Cities</h2>
+                            <span>@locations.Count saved cities</span>
+                        </div>
+
+                        <div class="favorites-table-wrapper">
+                            <table class="favorites-table">
+
+                                <thead>
+                                    <tr>
+                                        <th scope="col">City</th>
+                                        <th scope="col">Region</th>
+                                        <th scope="col">Selected</th>
+                                        <th scope="col">Remove</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    @foreach (var city in locations)
+                                    {
+                                        <tr @key="city.Id"
+                                            class="@(selectedCityId == city.Id ? "selected-row" : "")">
+
+                                            <td>
+                                                <button type="button"
+                                                        class="city-select-btn"
+                                                        @onclick="() => SelectCity(city.Id)">
+                                                    @city.Name
+                                                </button>
+                                            </td>
+
+                                            <td>@city.Region</td>
+
+                                            <td>
+                                                @if (selectedCityId == city.Id)
+                                                {
+                                                    <span class="selected-indicator">
+                                                        ★ Viewing
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <button type="button"
+                                                            class="select-btn"
+                                                            @onclick="() => SelectCity(city.Id)">
+                                                        View
+                                                    </button>
+                                                }
+                                            </td>
+
+                                            <td>
+                                                <button type="button"
+                                                        class="remove-btn"
+                                                        disabled="@busy"
+                                                        aria-label="@($"Remove {city.Name} from favorites")"
+                                                        @onclick="() => RemoveAsync(city.Id)">
+                                                    Remove
+                                                </button>
+                                            </td>
+
+                                        </tr>
+                                    }
+                                </tbody>
+
+                            </table>
+                        </div>
+
+                    </section>
+                </div>
+
+            </div>
+        }
+
     </Authorized>
-    <NotAuthorized><p>Log ind med brugernavn og password i toppen for at se dine favoritter.</p></NotAuthorized>
+
+    <NotAuthorized>
+        <p>
+            Please log in to see your favorites.
+        </p>
+    </NotAuthorized>
+
 </AuthorizeView>
+
 @code {
     [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
     [SupplyParameterFromQuery(Name = "registered")] public string? Registered { get; set; }
@@ -43,20 +183,77 @@
         try
         {
             var auth = await Authentication.GetAuthenticationStateAsync();
-            if (auth.User.Identity?.IsAuthenticated == true && ulong.TryParse(auth.User.FindFirstValue(ClaimTypes.NameIdentifier), out userId))
+
+            if (auth.User.Identity?.IsAuthenticated == true &&
+                ulong.TryParse(
+                    auth.User.FindFirstValue(ClaimTypes.NameIdentifier),
+                    out userId))
+            {
                 locations = await Favorites.ListAsync(userId);
+
+                if (locations.Count > 0)
+                {
+                    selectedCityId = locations[0].Id;
+                }
+            }
         }
-        catch (Exception ex) when (ex is MySqlConnector.MySqlException or InvalidOperationException)
-        { message = "Favoritter kunne ikke hentes. Prøv igen senere."; }
-        finally { loading = false; }
+        catch (Exception ex) when (
+            ex is MySqlConnector.MySqlException or InvalidOperationException)
+        {
+            message = "We couldn't load your favorites. Please try again later.";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void SelectCity(ulong cityId)
+    {
+        selectedCityId = cityId;
     }
     private async Task RemoveAsync(ulong id)
     {
         busy = true;
         message = null;
-        try { await Favorites.RemoveAsync(userId, id); locations.RemoveAll(p => p.Id == id); }
-        catch (Exception ex) when (ex is MySqlConnector.MySqlException or InvalidOperationException)
-        { message = "Favoritten kunne ikke fjernes. Prøv igen senere."; }
-        finally { busy = false; }
+
+        try
+        {
+            await Favorites.RemoveAsync(userId, id);
+            locations.RemoveAll(p => p.Id == id);
+
+            // If the removed city is currently selected,
+            // automatically select another favorite city.
+            if (selectedCityId == id)
+            {
+                selectedCityId = locations.Count > 0
+                    ? locations[0].Id
+                    : null;
+            }
+        }
+        catch (Exception ex) when (
+            ex is MySqlConnector.MySqlException or InvalidOperationException)
+        {
+            message = "We couldn't remove this favorite. Please try again later.";
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private ulong? selectedCityId;
+    private FavoriteLocation? SelectedCity =>
+    locations.FirstOrDefault(city => city.Id == selectedCityId);
+
+    private static string GetCityTheme(string cityName)
+    {
+        return cityName.Trim().ToLowerInvariant() switch
+        {
+            "copenhagen" or "københavn" => "copenhagen",
+            "dtu ballerup" => "dtu-ballerup",
+            "dtu lyngby" => "dtu-lyngby",
+            _ => "default-city"
+        };
     }
 }
