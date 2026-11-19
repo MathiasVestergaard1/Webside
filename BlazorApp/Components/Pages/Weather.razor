@@ -4,7 +4,8 @@
 @using System.Globalization
 @using System.Text.Json
 @using BlazorApp.Components.API
-@inject IHttpClientFactory HttpClientFactory
+@using static BlazorApp.Components.WeatherFormatting
+@inject OpenMeteoService OpenMeteo
 @inject IWebHostEnvironment Environment
 @inject Api Api
 @inject IJSRuntime JS
@@ -67,7 +68,7 @@
                 @if (currentWeatherCode.HasValue)
                 {
                     <span class="fs-5">
-                        @GetWeatherDescription(currentWeatherCode.Value)
+                        @WeatherCodes.ToDanish(currentWeatherCode.Value)
                     </span>
                 }
             </div>
@@ -208,9 +209,6 @@ else if (temperatures is not null && temperatures.Count > 0)
 @code {
     private static readonly CultureInfo daCulture = new("da-DK");
 
-    private static readonly TimeZoneInfo DanishTimeZone =
-        TimeZoneInfo.FindSystemTimeZoneById("Europe/Copenhagen");
-
     // City and postal-code search.
     private string searchText = "";
     private string? errorMessage;
@@ -222,32 +220,6 @@ else if (temperatures is not null && temperatures.Count > 0)
     private int? currentWeatherCode;
     private string? currentWeatherTime;
 
-    private static string GetWeatherDescription(int code)
-{
-    return code switch
-    {
-        0 => "Klart ☀️",
-        1 => "Overvejende klart 🌤️",
-        2 => "Delvist skyet ⛅",
-        3 => "Overskyet ☁️",
-        45 or 48 => "Tåge 🌫️",
-        51 or 53 or 55 => "Støvregn 🌦️",
-        56 or 57 => "Frysende støvregn 🧊",
-        61 => "Let regn 🌦️",
-        63 => "Regn 🌧️",
-        65 => "Kraftig regn 🌧️",
-        66 or 67 => "Frysende regn 🧊",
-        71 => "Let sne 🌨️",
-        73 => "Sne ❄️",
-        75 => "Kraftig sne ❄️",
-        77 => "Snekorn ❄️",
-        80 or 81 or 82 => "Regnbyger 🌦️",
-        85 or 86 => "Snebyger 🌨️",
-        95 => "Tordenvejr ⛈️",
-        96 or 99 => "Tordenvejr med hagl ⛈️",
-        _ => "Ukendt ❓"
-    };
-}
     private List<PostalCodeEntry> postalCodes = new();
 
     // Shared loading indicator.
@@ -330,124 +302,14 @@ else if (temperatures is not null && temperatures.Count > 0)
 
         try
         {
-            var client = HttpClientFactory.CreateClient();
-            GeocodingResult? place = null;
+            var result = await OpenMeteo.SearchAsync(query, postalCodes);
 
-            // Four-digit numeric searches use the local postal-code file.
-            if (query.Length == 4 && query.All(char.IsDigit))
-            {
-                var postalCode = postalCodes.FirstOrDefault(
-                    p => p.PostalCode == query);
-
-                if (postalCode is null)
-                {
-                    errorMessage = $"Postnummeret {query} blev ikke fundet.";
-                    return;
-                }
-
-                place = new GeocodingResult
-                {
-                    Name = postalCode.Name,
-                    Latitude = postalCode.Latitude,
-                    Longitude = postalCode.Longitude,
-                    Region = postalCode.Region,
-                    Country = postalCode.Country
-                };
-            }
-            else
-            {
-                // Search for a city using Open-Meteo geocoding.
-                var geoUrl =
-                    "https://geocoding-api.open-meteo.com/v1/search" +
-                    $"?name={Uri.EscapeDataString(query)}" +
-                    "&count=1&language=da";
-
-                var geo =
-                    await client.GetFromJsonAsync<GeocodingResponse>(geoUrl);
-
-                place = geo?.Results?.FirstOrDefault();
-
-                if (place is null)
-                {
-                    errorMessage =
-                        $"Kunne ikke finde et sted der hedder \"{query}\".";
-
-                    return;
-                }
-            }
-
-            // Fetch the five-day forecast.
-            var lat = place.Latitude.ToString(
-                CultureInfo.InvariantCulture);
-
-            var lon = place.Longitude.ToString(
-                CultureInfo.InvariantCulture);
-
-            var forecastUrl =
-                "https://api.open-meteo.com/v1/forecast" +
-                $"?latitude={lat}&longitude={lon}" +
-                "&current=temperature_2m,weather_code" +
-                "&daily=weather_code,temperature_2m_max,temperature_2m_min,temperature_2m_mean,wind_speed_10m_max" +
-                "&wind_speed_unit=ms&timezone=auto&forecast_days=5";
-
-            var forecast =
-                await client.GetFromJsonAsync<ForecastResponse>(forecastUrl);
-
-            var daily = forecast?.Daily;
-
-            if (forecast?.Current is not null) {
-                currentTemperature = forecast.Current.Temperature;
-                currentWeatherCode = forecast.Current.WeatherCode;
-                currentWeatherTime = forecast.Current.Time;
-            }
-            else
-            {
-                currentTemperature = null;
-                currentWeatherCode = null;
-                currentWeatherTime = null;
-            }
-
-            if (daily is null ||
-                daily.Time.Count == 0 ||
-                daily.TemperatureMean.Count < daily.Time.Count ||
-                daily.TemperatureMax.Count < daily.Time.Count ||
-                daily.TemperatureMin.Count < daily.Time.Count ||
-                daily.WindSpeedMax.Count < daily.Time.Count ||
-                daily.WeatherCode.Count < daily.Time.Count)
-            {
-                errorMessage = "Vejrdata kunne ikke hentes.";
-                return;
-            }
-
-            forecasts = Enumerable.Range(0, daily.Time.Count)
-                .Select(i => new DayForecast
-                {
-                    Date = DateOnly.Parse(
-                        daily.Time[i],
-                        CultureInfo.InvariantCulture),
-
-                    TempMean = daily.TemperatureMean[i],
-                    TempMax = daily.TemperatureMax[i],
-                    TempMin = daily.TemperatureMin[i],
-                    WindSpeed = daily.WindSpeedMax[i],
-                    WeatherCode = daily.WeatherCode[i]
-                })
-                .ToList();
-
-            location = place;
-        }
-        catch (HttpRequestException)
-        {
-            errorMessage =
-                "Der var et problem med at kontakte vejrtjenesten. Prøv igen senere.";
-        }
-        catch (System.Text.Json.JsonException)
-        {
-            errorMessage = "Vejrtjenesten returnerede ugyldige data.";
-        }
-        catch (Exception)
-        {
-            errorMessage = "Der opstod en uventet fejl under søgningen.";
+            errorMessage = result.ErrorMessage;
+            location = result.Location;
+            forecasts = result.Forecasts;
+            currentTemperature = result.Current?.Temperature;
+            currentWeatherCode = result.Current?.WeatherCode;
+            currentWeatherTime = result.Current?.Time;
         }
         finally
         {
@@ -481,46 +343,6 @@ else if (temperatures is not null && temperatures.Count > 0)
                 "Vejrkortet kunne ikke indlæses.";
             await InvokeAsync(StateHasChanged);
         }
-    }
-
-    private static string TemperatureColor(double celsius)
-    {
-        // Blue at 0°C, red at 25°C.
-        var t = Math.Clamp(celsius / 25.0, 0.0, 1.0);
-        var red = (int)(t * 255);
-        var blue = (int)((1 - t) * 255);
-
-        return $"rgb({red}, 60, {blue})";
-    }
-
-    private static DateTime CurrentDanishHour()
-    {
-        var now = TimeZoneInfo.ConvertTime(
-            DateTimeOffset.UtcNow,
-            DanishTimeZone);
-
-        return new DateTime(
-            now.Year,
-            now.Month,
-            now.Day,
-            now.Hour,
-            0,
-            0);
-    }
-
-    private static DateTime ToDanishTime(DateTimeOffset value)
-    {
-        return TimeZoneInfo.ConvertTime(value, DanishTimeZone).DateTime;
-    }
-
-    private static int RoundTemperature(double celsius)
-    {
-        return (int)Math.Round(celsius);
-    }
-
-    private static string FormatTime(DateTime value)
-    {
-        return value.ToString("HH:mm", CultureInfo.InvariantCulture);
     }
 
     private async Task ChangeHourAsync(int hours)
@@ -566,32 +388,8 @@ else if (temperatures is not null && temperatures.Count > 0)
         try
         {
             // Resolve daylight-saving transitions safely.
-            var local = DateTime.SpecifyKind(
-                selectedTime,
-                DateTimeKind.Unspecified);
-
-            if (DanishTimeZone.IsInvalidTime(local))
-            {
-                local = local.AddHours(1);
-                selectedTime = local;
-            }
-
-            DateTimeOffset at;
-
-            if (DanishTimeZone.IsAmbiguousTime(local))
-            {
-                // During the autumn clock change, use the earlier
-                // occurrence of the selected local time.
-                var offsets = DanishTimeZone.GetAmbiguousTimeOffsets(local);
-                var offset = offsets.Max();
-
-                at = new DateTimeOffset(local, offset);
-            }
-            else
-            {
-                at = new DateTimeOffset(
-                    TimeZoneInfo.ConvertTimeToUtc(local, DanishTimeZone));
-            }
+            var (at, local) = ResolveDanishTime(selectedTime);
+            selectedTime = local;
 
             var result = await Api.GetDenmarkTemperaturesAsync(at);
 

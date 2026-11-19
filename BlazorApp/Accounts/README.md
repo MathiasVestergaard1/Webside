@@ -3,6 +3,7 @@
 Koden bruger den eksisterende tabel `webapp.users` med `id`, `username`,
 `email`, `password_hash` og `created_at`. Den opretter eller ændrer ikke tabeller.
 
+- `IUserRepository.cs`: Interface for brugerdatabasen, så login kan testes uden MySQL.
 - `UserRepository.cs`: SQL med parametre til opslag og oprettelse.
 - `AccountEndpoints.cs`: validering, hashing, login-cookie og logout.
 - `Components/Pages/Account/`: siderne `/login`, `/register` og `/account`.
