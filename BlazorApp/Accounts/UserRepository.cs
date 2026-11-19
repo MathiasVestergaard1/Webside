@@ -2,7 +2,7 @@ using MySqlConnector;
 
 namespace BlazorApp.Accounts;
 
-public sealed class UserRepository(IConfiguration configuration)
+public sealed class UserRepository(IConfiguration configuration) : IUserRepository
 {
     // Opret en forbindelse med indstillingerne fra konfigurationen.
     private MySqlConnection Connection() => new(configuration.GetConnectionString("UsersDatabase")
@@ -37,6 +37,8 @@ public sealed class UserRepository(IConfiguration configuration)
         command.Parameters.AddWithValue("@email", email);
         command.Parameters.AddWithValue("@hash", hash);
         // Kør INSERT i databasen.
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        try { await command.ExecuteNonQueryAsync(cancellationToken); }
+        // MySQL-fejl 1062 betyder, at brugernavn eller e-mail allerede findes.
+        catch (MySqlException ex) when (ex.Number == 1062) { throw new DuplicateUserException(ex); }
     }
 }

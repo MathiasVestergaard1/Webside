@@ -75,7 +75,7 @@ namespace BlazorApp.Components.API
         }
 
         // Looks up the human-readable station names (e.g. "06180" -> "Københavns Lufthavn").
-        // Falls back to an empty lookup so temperatures still load if this call fails.
+        // Falls back to an empty lookup so temperatures still load if this call fails or returns invalid JSON.
         public async Task<Dictionary<string, string>> GetStationNamesAsync()
         {
             var requestUri = "v2/climateData/collections/station/items" +
@@ -94,7 +94,7 @@ namespace BlazorApp.Components.API
                     .GroupBy(f => f.Properties.StationId)
                     .ToDictionary(g => g.Key, g => g.First().Properties.Name);
             }
-            catch (HttpRequestException)
+            catch (Exception ex) when (ex is HttpRequestException or JsonException)
             {
                 return [];
             }

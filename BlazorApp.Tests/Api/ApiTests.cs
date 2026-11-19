@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Reflection;
 using BlazorApp.Components.API;
@@ -122,6 +123,52 @@ public class ApiTests
 
         Assert.Equal(3, result.Count);
         Assert.All(result, s => Assert.Equal(s.StationId, s.Name));
+    }
+
+    [Fact]
+    public async Task GetDenmarkTemperaturesAsync_StillWorks_WhenStationNamesAreInvalidJson()
+    {
+        var (api, _) = CreateApi(r => r.RequestUri!.AbsolutePath.EndsWith("/station/items")
+            ? FakeHttpMessageHandler.Json("<html>Maintenance</html>")
+            : RouteDmi(r));
+
+        var result = await api.GetDenmarkTemperaturesAsync(DateTimeOffset.UtcNow);
+
+        Assert.Equal(3, result.Count);
+        Assert.All(result, s => Assert.Equal(s.StationId, s.Name));
+    }
+
+    [Fact]
+    public async Task GetDenmarkTemperaturesAsync_UsesInvariantNumbers_UnderDanishCulture()
+    {
+        var (api, handler) = CreateApi(r => RouteDmi(r));
+        var original = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = new CultureInfo("da-DK");
+        try
+        {
+            await api.GetDenmarkTemperaturesAsync(new DateTimeOffset(2026, 11, 19, 12, 0, 0, TimeSpan.Zero));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = original;
+        }
+
+        // Danish formatting would turn 54.5 into "54,5" and break the bbox.
+        Assert.All(handler.Requests, r => Assert.Contains("bbox=8,54.5,15.5,58", Uri.UnescapeDataString(r.RequestUri!.Query)));
+    }
+
+    [Fact]
+    public async Task GetDenmarkTemperaturesAsync_RetriesStationNames_AfterFailure()
+    {
+        var namesAvailable = false;
+        var (api, handler) = CreateApi(r => RouteDmi(r, namesAvailable ? HttpStatusCode.OK : HttpStatusCode.ServiceUnavailable));
+
+        await api.GetDenmarkTemperaturesAsync(DateTimeOffset.UtcNow);
+        namesAvailable = true;
+        var result = await api.GetDenmarkTemperaturesAsync(DateTimeOffset.UtcNow);
+
+        Assert.Equal(2, handler.Requests.Count(r => r.RequestUri!.AbsolutePath.EndsWith("/station/items")));
+        Assert.Equal("Københavns Lufthavn", result.Single(s => s.StationId == "06180").Name);
     }
 
     [Fact]

@@ -19,7 +19,7 @@ public static class AccountEndpoints
 
     // Kontrollér formularen og udfør login, oprettelse eller logout.
     private static async Task<IResult> HandleAsync(string action, HttpContext context,
-        IAntiforgery antiforgery, UserRepository users, IPasswordHasher<UserAccount> hasher,
+        IAntiforgery antiforgery, IUserRepository users, IPasswordHasher<UserAccount> hasher,
         IConfiguration configuration, ILoggerFactory loggerFactory)
     {
         if (action is not ("login" or "register" or "logout")) return Results.NotFound();
@@ -85,8 +85,7 @@ public static class AccountEndpoints
             // Send browseren til kontosiden, som hentes med HTTP GET.
             return Results.LocalRedirect("/account");
         }
-        // MySQL-fejl 1062 betyder, at brugernavn eller e-mail allerede findes.
-        catch (MySqlException ex) when (action == "register" && ex.Number == 1062) { return Error("duplicate"); }
+        catch (DuplicateUserException) when (action == "register") { return Error("duplicate"); }
         catch (Exception ex) when (ex is MySqlException or InvalidOperationException)
         {
             loggerFactory.CreateLogger("Accounts").LogError("Account database operation failed ({ErrorType}).", ex.GetType().Name);
