@@ -11,9 +11,7 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
     - name: Setup .NET
@@ -30,6 +28,7 @@ jobs:
   docker:
     needs: build
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/Dev'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
