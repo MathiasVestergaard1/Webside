@@ -1,80 +1,255 @@
+
+/* ===== Nordic Neo-Retro Theme ===== */
+
 .page {
-    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    margin: 0;
+    background: linear-gradient(
+        135deg,
+        #f7f9f6 0%,
+        #edf5f1 55%,
+        #e4f0eb 100%
+    );
+}
+
+/* ===== Main Content ===== */
+
+main {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
     display: flex;
     flex-direction: column;
 }
 
-main {
+.content {
     flex: 1;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 20px 24px;
 }
+
+/* ===== Sidebar ===== */
 
 .sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    position: relative;
+    background: linear-gradient(
+        180deg,
+        #263f47 0%,
+        #304f54 55%,
+        #3b615e 100%
+    );
 }
+
+/* ===== Top Header ===== */
 
 .top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
-    justify-content: flex-end;
-    height: 3.5rem;
     display: flex;
     align-items: center;
+    justify-content: flex-end;
+    gap: 24px;
+
+    min-height: 76px;
+    padding: 14px 24px;
+    box-sizing: border-box;
+
+    background: rgba(255, 255, 255, 0.88);
+    border-bottom: 1px solid #dce8e3;
+
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    position: sticky;
+    top: 0;
+    z-index: 20;
 }
 
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        white-space: nowrap;
-        margin-left: 1.5rem;
-        text-decoration: none;
-    }
+/* ===== Search Bar ===== */
 
-    .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
-        text-decoration: underline;
-    }
+.header-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+    max-width: 500px;
 
-    .top-row ::deep a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
+    background: #f7f9f6;
+    border: 1px solid #d5e2dc;
+    border-radius: 2px;
 
-@media (max-width: 640.98px) {
-    .top-row {
-        justify-content: space-between;
-    }
-
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        margin-left: 0;
-    }
+    padding: 5px 8px 5px 15px;
 }
+
+.search-icon {
+    color: #607f79;
+    font-size: 24px;
+    line-height: 1;
+}
+
+.header-search input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #263f47;
+    font-size: 14px;
+}
+
+.header-search input::placeholder {
+    color: #80958f;
+}
+
+.header-search:focus-within {
+    border-color: #89b8ae;
+    box-shadow: 0 0 0 3px rgba(137, 184, 174, 0.16);
+}
+
+/* ===== Search Button ===== */
+
+.search-btn {
+    height: 42px;
+    padding: 0 20px;
+
+    background: linear-gradient(
+        180deg,
+        #b8ded4 0%,
+        #72b4a6 100%
+    );
+
+    color: #214d46;
+    border: 1px solid #477d76;
+    border-radius: 2px;
+    box-shadow: 0 3px 0 #477d76;
+
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+
+    cursor: pointer;
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.search-btn:not(:disabled):hover {
+    transform: translateY(-1px);
+}
+
+.search-btn:not(:disabled):active {
+    transform: translateY(2px);
+    box-shadow: none;
+}
+
+.search-btn:disabled {
+    opacity: 1;
+    cursor: not-allowed;
+}
+
+/* ===== Account Bar ===== */
+
+/* AccountBar is a child component.
+   ::deep allows styling elements inside it. */
+
+.top-row ::deep .account-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+    min-width: 0;
+}
+
+.top-row ::deep .account-bar a {
+    margin-left: 0;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.top-row ::deep .account-bar a:hover {
+    text-decoration: underline;
+}
+
+/* ===== Desktop Layout ===== */
 
 @media (min-width: 641px) {
     .page {
-        flex-direction: row;
+        flex-direction: column;
+        min-height: 100vh;
     }
 
     .sidebar {
-        width: 250px;
-        height: 100vh;
-        position: sticky;
-        top: 0;
+        width: 100%;
+        height: auto;
+        flex: none;
     }
 
-    .top-row {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-    }
-
-    .top-row.auth ::deep a:first-child {
+    main {
         flex: 1;
-        text-align: right;
-        width: 0;
+        min-height: 0;
+        height: auto;
+        overflow: visible;
     }
 
-    .top-row, article {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
+    .content {
+        flex: 1;
+        min-height: 0;
+        overflow: visible;
     }
 }
+
+/* ===== Tablet ===== */
+
+@media (max-width: 1100px) {
+    .top-row {
+        gap: 12px;
+    }
+
+    .content {
+        padding: 16px;
+    }
+}
+
+/* ===== Mobile ===== */
+
+@media (max-width: 640.98px) {
+    .top-row {
+        position: relative;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 14px 16px;
+    }
+
+    .header-search {
+        max-width: none;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .top-row ::deep .account-bar {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .content {
+        padding: 12px;
+    }
+}
+
+/* ===== Reduced Motion ===== */
+
+@media (prefers-reduced-motion: reduce) {
+    .search-btn {
+        transition: none;
+    }
+}
+
+/* ===== Blazor Error UI ===== */
 
 #blazor-error-ui {
     color-scheme: light only;
@@ -90,9 +265,68 @@ main {
     z-index: 1000;
 }
 
-    #blazor-error-ui .dismiss {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}
+
+
+/* ===== Horizontal Main Layout ===== */
+
+@media (min-width: 641px) {
+    .page {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
     }
+
+    main {
+        flex: 1;
+        height: auto;
+        min-height: 0;
+        overflow: visible;
+    }
+
+    .content {
+        overflow: visible;
+    }
+}
+
+/* ===== Top Navbar ===== */
+
+.top-row {
+    justify-content: space-between;
+    gap: 24px;
+    background: #263f47;
+    border-bottom: 1px solid #477d76;
+}
+
+.main-navigation {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+}
+
+/* Account links on dark navbar */
+
+.top-row ::deep .account-bar,
+.top-row ::deep .account-bar a {
+    color: #ffffff;
+}
+
+/* ===== Mobile ===== */
+
+@media (max-width: 640.98px) {
+    .top-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .main-navigation {
+        width: 100%;
+    }
+}

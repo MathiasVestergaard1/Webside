@@ -1,0 +1,67 @@
+@using BlazorApp.Accounts
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject FavoriteRepository Favorites
+@inject AuthenticationStateProvider Authentication
+<AuthorizeView>
+    <Authorized>
+        <button class="btn @(saved ? "btn-primary" : "btn-outline-primary") mb-3" disabled="@(busy || statusFailed)" aria-pressed="@(saved ? "true" : "false")" @onclick="ToggleAsync">@(busy ? "Vent..." : saved ? "★ Fjern favorit" : "☆ Gem favorit")</button>
+        @if (message is not null) { <p role="alert" class="text-danger">@message</p> }
+        @if (statusFailed) { <button class="btn btn-outline-secondary btn-sm mb-3" @onclick="CheckStatusAsync">Prøv igen</button> }
+    </Authorized>
+    <NotAuthorized><p>Log ind i toppen for at gemme favoritter.</p></NotAuthorized>
+</AuthorizeView>
+@code {
+    [Parameter, EditorRequired] public GeocodingResult Location { get; set; } = default!;
+    private bool busy, saved;
+    private string? message;
+    private GeocodingResult? previousLocation;
+    private bool statusFailed;
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!ReferenceEquals(previousLocation, Location))
+        {
+            previousLocation = Location;
+            saved = false;
+            message = null;
+            await CheckStatusAsync();
+        }
+    }
+    private async Task CheckStatusAsync()
+    {
+        busy = true;
+        statusFailed = false;
+        message = null;
+        try
+        {
+            var auth = await Authentication.GetAuthenticationStateAsync();
+            if (auth.User.Identity?.IsAuthenticated != true || !ulong.TryParse(auth.User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)) return;
+            saved = await Favorites.ExistsAsync(userId, Location.Latitude, Location.Longitude);
+        }
+        catch (Exception ex) when (ex is MySqlConnector.MySqlException or InvalidOperationException)
+        {
+            statusFailed = true;
+            message = "Favoritstatus kunne ikke hentes. Prøv igen.";
+        }
+        finally { busy = false; }
+    }
+    private async Task ToggleAsync()
+    {
+        if (busy || statusFailed) return;
+        busy = true;
+        message = null;
+        try
+        {
+            var auth = await Authentication.GetAuthenticationStateAsync();
+            if (auth.User.Identity?.IsAuthenticated != true || !ulong.TryParse(auth.User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)) return;
+            if (saved)
+                await Favorites.RemoveByCoordinatesAsync(userId, Location.Latitude, Location.Longitude);
+            else
+                await Favorites.SaveAsync(userId, Location.Name, Location.Latitude, Location.Longitude, Location.Country, Location.Region);
+            saved = !saved;
+        }
+        catch (Exception ex) when (ex is MySqlConnector.MySqlException or InvalidOperationException or ArgumentException)
+        { message = "Favoritten kunne ikke opdateres. Prøv igen senere."; }
+        finally { busy = false; }
+    }
+}

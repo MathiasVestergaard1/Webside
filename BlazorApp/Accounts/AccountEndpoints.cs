@@ -31,10 +31,10 @@ public static class AccountEndpoints
         {
             // Log ud ved at fjerne login-cookien fra browseren.
             await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return Results.LocalRedirect("/login");
+            return Results.LocalRedirect("/");
         }
 
-        var page = action == "register" ? "/register" : "/login";
+        var page = action == "register" ? "/register" : "/account";
         IResult Error(string code) => Results.LocalRedirect($"{page}?error={code}");
         if (string.IsNullOrWhiteSpace(configuration.GetConnectionString("UsersDatabase"))) return Error("database");
 
@@ -56,7 +56,7 @@ public static class AccountEndpoints
                 var hash = hasher.HashPassword(account, password);
                 // Repository kører SQL INSERT og gemmer brugeren.
                 await users.CreateAsync(username, email, hash, context.RequestAborted);
-                return Results.LocalRedirect("/login?registered=true");
+                return Results.LocalRedirect("/account?registered=true");
             }
 
             // Repository kører SQL SELECT og henter brugeren.

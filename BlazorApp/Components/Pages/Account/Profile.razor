@@ -1,19 +1,259 @@
 @page "/account"
+@rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Authorization
-@* HTTP GET /account: Vis indhold ud fra brugerens loginstatus. *@
+@using System.Security.Claims
+@using BlazorApp.Accounts
+@inject AuthenticationStateProvider Authentication
+@inject FavoriteRepository Favorites
+<PageTitle>Min side</PageTitle>
 
-<PageTitle>Min konto</PageTitle>
-<h1>Min konto</h1>
+
+<div class="profile-header">
+    <div>
+        <span class="profile-subtitle">MY WEATHER DASHBOARD</span>
+        <h1>Min side</h1>
+
+        <AuthorizeView>
+            <Authorized Context="headerAuth">
+                <p>
+                    Welcome back, <strong>@headerAuth.User.Identity?.Name</strong>! 👋
+                </p>
+                <p>Manage your favorite cities and explore the weather.</p>
+            </Authorized>
+
+            <NotAuthorized>
+                <p>Sign in to manage your favorite cities.</p>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+
+    <span class="profile-weather-icon" aria-hidden="true">🌤️</span>
+</div>
+
+
+<AccountMessage Error="@Error" />
+
+@if (Registered == "true") { <p class="alert alert-success">Brugeren er oprettet. Log ind i toppen.</p> }
+
 <AuthorizeView>
     <Authorized Context="auth">
-        <p>Du er logget ind som <strong>@auth.User.Identity?.Name</strong>.</p>
-        @* HTTP POST /account/logout: Fjern login-cookien og log ud. *@
-        <form method="post" action="/account/logout" data-enhance="false">
-            <AntiforgeryToken />
-            <button type="submit" class="btn btn-secondary">Log ud</button>
-        </form>
+
+        @if (message is not null)
+        {
+            <p class="alert alert-warning" role="alert">@message</p>
+        }
+
+        @if (loading)
+        {
+            <p role="status">Loading favorites...</p>
+        }
+        else if (locations.Count == 0 && message is null)
+        {
+            <div class="favorites-empty">
+                <h3>No favorite cities yet ⭐</h3>
+                <p>Search for a city and add it to your favorites.</p>
+                <a href="/weather" class="find-city-link">
+                    Explore Weather
+                </a>
+            </div>
+        }
+
+        else if (SelectedCity is not null)
+        {
+            <div class="dashboard-grid">
+
+                <!-- LEFT PANE: Selected City -->
+                <div class="dashboard-left">
+
+                    <section class="featured-weather">
+
+                        <div class="featured-scene @GetCityTheme(SelectedCity.Name)">
+                            <div class="featured-scene-content">
+                                <span>📍 SELECTED CITY</span>
+                                <h2>@SelectedCity.Name</h2>
+                                <p>@SelectedCity.Region, @SelectedCity.Country</p>
+                            </div>
+                        </div>
+
+                        <div class="featured-details">
+                            <FavoriteWeather @key="SelectedCity.Id"
+                                            Location="SelectedCity" />
+                        </div>
+
+                    </section>
+                </div>
+
+                <!-- RIGHT PANE: Favorites Table -->
+                <div class="dashboard-right">
+
+                    <section class="favorites-section">
+
+                        <div class="favorites-heading">
+                            <h2>⭐ My Favorite Cities</h2>
+                            <span>@locations.Count saved cities</span>
+                        </div>
+
+                        <div class="favorites-table-wrapper">
+                            <table class="favorites-table">
+
+                                <thead>
+                                    <tr>
+                                        <th scope="col">City</th>
+                                        <th scope="col">Region</th>
+                                        <th scope="col">Selected</th>
+                                        <th scope="col">Remove</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    @foreach (var city in locations)
+                                    {
+                                        <tr @key="city.Id"
+                                            class="@(selectedCityId == city.Id ? "selected-row" : "")">
+
+                                            <td>
+                                                <button type="button"
+                                                        class="city-select-btn"
+                                                        @onclick="() => SelectCity(city.Id)">
+                                                    @city.Name
+                                                </button>
+                                            </td>
+
+                                            <td>@city.Region</td>
+
+                                            <td>
+                                                @if (selectedCityId == city.Id)
+                                                {
+                                                    <span class="selected-indicator">
+                                                        ★ Viewing
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <button type="button"
+                                                            class="select-btn"
+                                                            @onclick="() => SelectCity(city.Id)">
+                                                        View
+                                                    </button>
+                                                }
+                                            </td>
+
+                                            <td>
+                                                <button type="button"
+                                                        class="remove-btn"
+                                                        disabled="@busy"
+                                                        aria-label="@($"Remove {city.Name} from favorites")"
+                                                        @onclick="() => RemoveAsync(city.Id)">
+                                                    Remove
+                                                </button>
+                                            </td>
+
+                                        </tr>
+                                    }
+                                </tbody>
+
+                            </table>
+                        </div>
+
+                    </section>
+                </div>
+
+            </div>
+        }
+
     </Authorized>
+
     <NotAuthorized>
-        <p>Du skal <a href="/login">logge ind</a> for at se din konto.</p>
+        <p>
+            Please log in to see your favorites.
+        </p>
     </NotAuthorized>
+
 </AuthorizeView>
+
+@code {
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "registered")] public string? Registered { get; set; }
+    private List<FavoriteLocation> locations = [];
+    private bool loading = true, busy;
+    private ulong userId;
+    private string? message;
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var auth = await Authentication.GetAuthenticationStateAsync();
+
+            if (auth.User.Identity?.IsAuthenticated == true &&
+                ulong.TryParse(
+                    auth.User.FindFirstValue(ClaimTypes.NameIdentifier),
+                    out userId))
+            {
+                locations = await Favorites.ListAsync(userId);
+
+                if (locations.Count > 0)
+                {
+                    selectedCityId = locations[0].Id;
+                }
+            }
+        }
+        catch (Exception ex) when (
+            ex is MySqlConnector.MySqlException or InvalidOperationException)
+        {
+            message = "We couldn't load your favorites. Please try again later.";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void SelectCity(ulong cityId)
+    {
+        selectedCityId = cityId;
+    }
+    private async Task RemoveAsync(ulong id)
+    {
+        busy = true;
+        message = null;
+
+        try
+        {
+            await Favorites.RemoveAsync(userId, id);
+            locations.RemoveAll(p => p.Id == id);
+
+            // If the removed city is currently selected,
+            // automatically select another favorite city.
+            if (selectedCityId == id)
+            {
+                selectedCityId = locations.Count > 0
+                    ? locations[0].Id
+                    : null;
+            }
+        }
+        catch (Exception ex) when (
+            ex is MySqlConnector.MySqlException or InvalidOperationException)
+        {
+            message = "We couldn't remove this favorite. Please try again later.";
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private ulong? selectedCityId;
+    private FavoriteLocation? SelectedCity =>
+    locations.FirstOrDefault(city => city.Id == selectedCityId);
+
+    private static string GetCityTheme(string cityName)
+    {
+        return cityName.Trim().ToLowerInvariant() switch
+        {
+            "copenhagen" or "københavn" => "copenhagen",
+            "dtu ballerup" => "dtu-ballerup",
+            "dtu lyngby" => "dtu-lyngby",
+            _ => "default-city"
+        };
+    }
+}

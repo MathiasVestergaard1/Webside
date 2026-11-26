@@ -1,3 +1,4 @@
+
 using System.Text.Json.Serialization;
 
 // ---------- Geocoding API ----------
@@ -30,7 +31,6 @@ public class GeocodingResult
 
 public class ForecastResponse
 {
-
     [JsonPropertyName("current")]
     public CurrentWeatherData? Current { get; set; }
 
@@ -51,6 +51,8 @@ public class CurrentWeatherData
     [JsonPropertyName("weather_code")]
     public int WeatherCode { get; set; }
 }
+
+// ---------- Daily Forecast Data ----------
 
 public class DailyData
 {
@@ -73,11 +75,12 @@ public class DailyData
     public List<double> WindSpeedMax { get; set; } = new();
 }
 
-// ---------- View model brugt af siden ----------
+// ---------- View Model ----------
 
 public class DayForecast
 {
     public DateOnly Date { get; set; }
+
     public double TempMean { get; set; }
     public double TempMax { get; set; }
     public double TempMin { get; set; }
@@ -87,9 +90,10 @@ public class DayForecast
     public string Condition => WeatherCodes.ToDanish(WeatherCode);
 }
 
+// ---------- WMO Weather Codes ----------
+
 public static class WeatherCodes
 {
-    //Fra vejrkoder til dansk (Nu med emojis)
     public static string ToDanish(int code) => code switch
     {
         0 => "Klar himmel ☀️",
@@ -115,7 +119,8 @@ public static class WeatherCodes
     };
 }
 
-// Class til postnumrer
+// ---------- Postal Code Lookup ----------
+
 public class PostalCodeEntry
 {
     public string PostalCode { get; set; } = "";

@@ -1,0 +1,352 @@
+/* ===== VejrVille Profile Header ===== */
+
+.profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+
+    padding: 24px 28px;
+    margin-bottom: 24px;
+
+    background: linear-gradient(
+        135deg,
+        #e4f0eb 0%,
+        #f7f9f6 100%
+    );
+
+    border: 3px solid #263f47;
+    border-radius: 4px;
+    box-shadow: 6px 6px 0 #263f47;
+}
+
+.profile-subtitle {
+    color: #477d76;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+}
+
+.profile-header h1 {
+    margin: 8px 0;
+    color: #263f47;
+    font-size: 2rem;
+}
+
+.profile-header p {
+    margin: 0;
+    color: #607f79;
+}
+
+.profile-weather-icon {
+    font-size: 3.5rem;
+}
+
+@media (max-width: 640px) {
+    .profile-header {
+        padding: 18px;
+    }
+
+    .profile-weather-icon {
+        font-size: 2.5rem;
+    }
+}
+
+
+/* ===== Welcome Section ===== */
+
+.profile-welcome {
+    margin-bottom: 24px;
+    padding: 20px 24px;
+    background: #ffffff;
+    border: 2px solid #d5e2dc;
+    border-radius: 4px;
+}
+
+.profile-welcome h2 {
+    margin: 8px 0;
+    color: #263f47;
+    font-size: 1.5rem;
+}
+
+.profile-welcome p {
+    margin: 0;
+    color: #607f79;
+}
+
+/* ===== Featured City Weather ===== */
+
+.featured-weather {
+    margin-bottom: 32px;
+    overflow: hidden;
+    background: #ffffff;
+    border: 3px solid #263f47;
+    border-radius: 4px;
+    box-shadow: 6px 6px 0 #263f47;
+}
+
+.featured-scene {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    min-height: 280px;
+    padding: 28px;
+
+    color: #ffffff;
+    background-color: #87ceeb;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    isolation: isolate;
+}
+
+.featured-scene::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+
+    background: linear-gradient(
+        90deg,
+        rgba(20, 35, 55, 0.78) 0%,
+        rgba(20, 35, 55, 0.35) 50%,
+        rgba(20, 35, 55, 0.05) 100%
+    );
+}
+
+.featured-scene-content {
+    position: relative;
+    z-index: 1;
+}
+
+.featured-scene-content span {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.featured-scene-content h2 {
+    margin: 10px 0;
+    font-size: 2.5rem;
+    color: #ffffff;
+}
+
+.featured-scene-content p {
+    margin: 0;
+    color: #ffffff;
+}
+
+/* ===== Pixel Art City Themes ===== */
+
+.featured-scene.copenhagen {
+    background-image: url('/images/copenhagen-pixel.png');
+}
+
+.featured-scene.dtu-ballerup {
+    background-image: url('/images/dtu-ballerup-pixel.png');
+}
+
+.featured-scene.dtu-lyngby {
+    background-image: url('/images/dtu-lyngby-pixel.png');
+}
+
+.featured-scene.default-city {
+    background-image: url('/images/default-city-pixel.png');
+}
+
+/* ===== Weather Details ===== */
+
+.featured-details {
+    padding: 20px;
+}
+
+/* ===== Favorites Table ===== */
+
+.favorites-section {
+    margin-top: 32px;
+    margin-bottom: 32px;
+}
+
+.favorites-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.favorites-heading h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    color: #263f47;
+}
+
+.favorites-heading span {
+    color: #607f79;
+    font-size: 0.9rem;
+}
+
+.favorites-table-wrapper {
+    overflow-x: auto;
+    background: #ffffff;
+    border: 2px solid #263f47;
+    border-radius: 4px;
+}
+
+.favorites-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.favorites-table th {
+    padding: 14px 16px;
+    text-align: left;
+    background: #e4f0eb;
+    color: #263f47;
+}
+
+.favorites-table td {
+    padding: 14px 16px;
+    border-top: 1px solid #dce8e3;
+}
+
+.selected-row {
+    background: #f0f8f4;
+}
+
+.city-select-btn,
+.select-btn {
+    background: transparent;
+    border: none;
+    color: #305b58;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.city-select-btn:hover,
+.select-btn:hover {
+    text-decoration: underline;
+}
+
+.selected-indicator {
+    color: #477d76;
+    font-weight: 700;
+}
+
+.remove-btn {
+    padding: 6px 12px;
+    border: 1px solid #a43c3c;
+    border-radius: 3px;
+    background: #ffffff;
+    color: #a43c3c;
+    cursor: pointer;
+}
+
+.remove-btn:hover:not(:disabled) {
+    background: #fff0f0;
+}
+
+.remove-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ===== Empty State ===== */
+
+.favorites-empty {
+    padding: 36px;
+    background: #ffffff;
+    border: 2px dashed #89b8ae;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.favorites-empty h3 {
+    color: #263f47;
+}
+
+.find-city-link {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 10px 18px;
+    background: #263f47;
+    color: #ffffff;
+    border-radius: 3px;
+    text-decoration: none;
+}
+
+.find-city-link:hover {
+    background: #3b615e;
+    color: #ffffff;
+}
+
+/* ===== Responsive Design ===== */
+
+@media (max-width: 700px) {
+    .profile-welcome {
+        padding: 16px;
+    }
+
+    .featured-scene {
+        min-height: 200px;
+        padding: 16px;
+    }
+
+    .featured-scene-content h2 {
+        font-size: 1.8rem;
+    }
+
+    .featured-details {
+        padding: 12px;
+    }
+
+    .favorites-heading {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .favorites-table th,
+    .favorites-table td {
+        padding: 10px;
+    }
+}
+
+/* ===== Two-Pane Dashboard ===== */
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+}
+
+.dashboard-left,
+.dashboard-right {
+    min-width: 0;
+}
+
+.dashboard-grid .featured-weather {
+    margin-bottom: 0;
+}
+
+.dashboard-grid .featured-scene {
+    min-height: 190px;
+}
+
+.dashboard-right {
+    padding: 16px;
+    background: white;
+    border: 2px solid #263f47;
+    border-radius: 4px;
+    box-shadow: 5px 5px 0 #263f47;
+}
+
+.dashboard-right .favorites-section {
+    margin: 0;
+}
+
+@media (max-width: 950px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}

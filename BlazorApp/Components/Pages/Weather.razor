@@ -82,6 +82,8 @@
     </div>
 }
 
+            <BlazorApp.Components.Pages.Account.FavoriteButton @key="location" Location="location" />
+
             <div class="table-responsive">
                 <table class="table">
                     <thead>
@@ -212,6 +214,12 @@ else if (temperatures is not null && temperatures.Count > 0)
         TimeZoneInfo.FindSystemTimeZoneById("Europe/Copenhagen");
 
     // City and postal-code search.
+    [SupplyParameterFromQuery(Name = "place")] public string? FavoriteName { get; set; }
+    [SupplyParameterFromQuery(Name = "lat")] public double? FavoriteLatitude { get; set; }
+    [SupplyParameterFromQuery(Name = "lon")] public double? FavoriteLongitude { get; set; }
+    [SupplyParameterFromQuery(Name = "country")] public string? FavoriteCountry { get; set; }
+    [SupplyParameterFromQuery(Name = "region")] public string? FavoriteRegion { get; set; }
+    private bool useFavorite;
     private string searchText = "";
     private string? errorMessage;
     private GeocodingResult? location;
@@ -269,6 +277,16 @@ else if (temperatures is not null && temperatures.Count > 0)
     protected override async Task OnInitializedAsync()
     {
         await LoadPostalCodesAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(FavoriteName) && FavoriteLatitude is >= -90 and <= 90 && FavoriteLongitude is >= -180 and <= 180)
+        {
+            searchText = FavoriteName;
+            useFavorite = true;
+            await SearchAsync();
+        }
     }
 
     private async Task LoadPostalCodesAsync()
@@ -334,7 +352,12 @@ else if (temperatures is not null && temperatures.Count > 0)
             GeocodingResult? place = null;
 
             // Four-digit numeric searches use the local postal-code file.
-            if (query.Length == 4 && query.All(char.IsDigit))
+            if (useFavorite)
+            {
+                useFavorite = false;
+                place = new GeocodingResult { Name = FavoriteName!, Latitude = FavoriteLatitude!.Value, Longitude = FavoriteLongitude!.Value, Country = FavoriteCountry, Region = FavoriteRegion };
+            }
+            else if (query.Length == 4 && query.All(char.IsDigit))
             {
                 var postalCode = postalCodes.FirstOrDefault(
                     p => p.PostalCode == query);
