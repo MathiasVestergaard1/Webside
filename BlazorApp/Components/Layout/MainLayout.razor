@@ -3,27 +3,26 @@
 
 <div class="page">
 
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+    <!-- Top Navigation Bar -->
+    <header class="top-row">
+
+        <!-- Logo and Navigation Links -->
+        <nav class="main-navigation" aria-label="Main navigation">
+            <NavMenu />
+        </nav>
+
+        <!-- Login / Account UI -->
+        <AccountBar />
+
+    </header>
 
     <main>
-
-        <!-- Top Header -->
-        <header class="top-row">
-
-            <!-- Login / Account UI -->
-            <AccountBar />
-
-        </header>
-
         <!-- Page Content -->
         <article class="content">
             @Body
         </article>
-
     </main>
+
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>

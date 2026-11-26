@@ -178,26 +178,27 @@ main {
 
 @media (min-width: 641px) {
     .page {
-        flex-direction: row;
-        height: 100vh;
-        min-height: 0;
-        overflow: hidden;
+        flex-direction: column;
+        min-height: 100vh;
     }
 
     .sidebar {
-        flex: 0 0 250px;
-        height: 100vh;
+        width: 100%;
+        height: auto;
+        flex: none;
     }
 
     main {
-        height: 100vh;
+        flex: 1;
         min-height: 0;
-        overflow: hidden;
+        height: auto;
+        overflow: visible;
     }
 
     .content {
+        flex: 1;
         min-height: 0;
-        overflow-y: auto;
+        overflow: visible;
     }
 }
 
@@ -269,4 +270,63 @@ main {
     position: absolute;
     right: 0.75rem;
     top: 0.5rem;
+}
+
+
+/* ===== Horizontal Main Layout ===== */
+
+@media (min-width: 641px) {
+    .page {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+    }
+
+    main {
+        flex: 1;
+        height: auto;
+        min-height: 0;
+        overflow: visible;
+    }
+
+    .content {
+        overflow: visible;
+    }
+}
+
+/* ===== Top Navbar ===== */
+
+.top-row {
+    justify-content: space-between;
+    gap: 24px;
+    background: #263f47;
+    border-bottom: 1px solid #477d76;
+}
+
+.main-navigation {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+}
+
+/* Account links on dark navbar */
+
+.top-row ::deep .account-bar,
+.top-row ::deep .account-bar a {
+    color: #ffffff;
+}
+
+/* ===== Mobile ===== */
+
+@media (max-width: 640.98px) {
+    .top-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .main-navigation {
+        width: 100%;
+    }
 }
